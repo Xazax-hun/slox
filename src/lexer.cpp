@@ -5,6 +5,23 @@
 #include <ctype.h>
 #include <sstream>
 
+std::string print(Token t)
+{
+    switch (t.type)
+    {
+    case TokenType::IDENTIFIER:
+        return std::get<std::string>(t.value);
+
+    case TokenType::STRING:
+        return "\"" + std::get<std::string>(t.value) + "\"";
+    case TokenType::NUMBER:
+        return std::to_string(std::get<double>(t.value));
+    
+    default:
+        return std::string(tokenTypeToSourceName(t.type));
+    }
+}
+
 std::optional<std::vector<Token>> Lexer::lexAll()
 {
     std::vector<Token> result;
@@ -98,6 +115,7 @@ std::optional<Token> Lexer::lex()
 
 std::optional<Token> Lexer::lexString()
 {
+    // TODO: Add support for escaping.
     while (peek() != '"' && !isAtEnd())
     {
         if (peek() == '\n')

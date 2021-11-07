@@ -5,6 +5,8 @@
 #include <iostream>
 
 #include <include/lexer.h>
+#include <include/ast.h>
+#include <include/parser.h>
 
 constexpr std::string_view prompt{"> "};
 
@@ -41,9 +43,14 @@ bool runSource(std::string sourceText)
     auto maybeTokens = lexer.lexAll();
     if (!maybeTokens)
         return false;
-    for (auto token : *maybeTokens)
-    {
-        std::cout << (int)token.type << " ";
-    }
+
+    Parser parser(std::move(*maybeTokens));
+    auto maybeAst = parser.parse();
+    if (!maybeAst)
+        return false;
+
+    ASTPrinter printer(parser.getContext());
+    std::cout << printer.print(*maybeAst) << std::endl;
+
     return true;
 }

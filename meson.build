@@ -6,7 +6,8 @@ project('slox', 'cpp',
 fmt_dep = dependency('fmt')
 
 # Libraries
-slox_static_sources = ['src/interpreter.cpp', 'src/lexer.cpp', 'src/utils.cpp']
+slox_static_sources = ['src/interpreter.cpp', 'src/lexer.cpp', 'src/parser.cpp',
+                       'src/ast.cpp', 'src/utils.cpp']
 slox_static_lib = static_library('libslox', slox_static_sources,
                                  dependencies: fmt_dep)
 

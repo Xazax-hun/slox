@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <cassert>
 
-enum class TokenType
+enum class TokenType : unsigned char
 {
     // Single-character tokens.
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -88,7 +88,7 @@ struct Token
     //       location should be an index into
     //       a table that has line number,
     //       column number and file path.
-    int line; 
+    unsigned line; 
 
     // The value of string, number literals.
     // The name of identifiers.
@@ -98,6 +98,8 @@ struct Token
     Token(TokenType type, int line, Value value = {}) :
         type(type), line(line), value(std::move(value)) {}
 };
+
+std::string print(Token);
 
 class Lexer
 {

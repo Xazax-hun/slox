@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <iostream>
 
-namespace {
+namespace
+{
 
 auto lexString (std::string s)
 {
@@ -119,5 +120,7 @@ TEST(Lexer, LineNumbers)
         EXPECT_EQ(4, tokenList.back().line);
     }
 }
+
+// TODO: add tests for ambiguous lexing, e.g.: ===
 
 } // namespace
