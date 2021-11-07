@@ -1,5 +1,6 @@
 #include <include/lexer.h>
 #include <include/utils.h>
+#include <fmt/format.h>
 
 #include <ctype.h>
 #include <sstream>
@@ -11,7 +12,7 @@ std::optional<std::vector<Token>> Lexer::lexAll()
     {
         if (auto maybeToken = lex(); maybeToken.has_value())
             result.push_back(*maybeToken);
-        else
+        else if (hasError)
             return std::nullopt;
     }
 
@@ -60,7 +61,7 @@ std::optional<Token> Lexer::lex()
                 // Skip to end of line for comment.
                 while (peek() != '\n' && !isAtEnd())
                     advance();
-                continue;
+                break;
             }
             
             return Token(TokenType::SLASH, line);
@@ -72,7 +73,7 @@ std::optional<Token> Lexer::lex()
         case ' ':
         case '\r':
         case '\t':
-            continue;
+            break;
 
         case '"':
             return lexString();
@@ -85,9 +86,13 @@ std::optional<Token> Lexer::lex()
             if (isalpha(c))
                 return lexIdentifier();
 
-            error(line, "Unexpected token.");
+            error(line, fmt::format("Unexpected token: '{}'.", source.substr(start, current - start)));
+            hasError = true;
             return std::nullopt;
         }
+
+        if (isAtEnd())
+            return std::nullopt;
     }
 }
 
@@ -174,20 +179,20 @@ char Lexer::peekNext()
 
 // TODO: use constexpr std::string_view tokenTypeToSourceName(TokenType);
 const std::unordered_map<std::string_view, TokenType> Lexer::keywords = {
-    {"and",    TokenType::AND},
-    {"class",  TokenType::CLASS},
-    {"else",   TokenType::ELSE},
-    {"false",  TokenType::FALSE},
-    {"for",    TokenType::FOR},
-    {"fun",    TokenType::FUN},
-    {"if",     TokenType::IF},
-    {"nil",    TokenType::NIL},
-    {"or",     TokenType::OR},
-    {"print",  TokenType::PRINT},
-    {"return", TokenType::RETURN},
-    {"super",  TokenType::SUPER},
-    {"this",   TokenType::THIS},
-    {"true",   TokenType::TRUE},
-    {"var",    TokenType::VAR},
-    {"while",  TokenType::WHILE}
+    {tokenTypeToSourceName(TokenType::AND),    TokenType::AND},
+    {tokenTypeToSourceName(TokenType::CLASS),  TokenType::CLASS},
+    {tokenTypeToSourceName(TokenType::ELSE),   TokenType::ELSE},
+    {tokenTypeToSourceName(TokenType::FALSE),  TokenType::FALSE},
+    {tokenTypeToSourceName(TokenType::FOR),    TokenType::FOR},
+    {tokenTypeToSourceName(TokenType::FUN),    TokenType::FUN},
+    {tokenTypeToSourceName(TokenType::IF),     TokenType::IF},
+    {tokenTypeToSourceName(TokenType::NIL),    TokenType::NIL},
+    {tokenTypeToSourceName(TokenType::OR),     TokenType::OR},
+    {tokenTypeToSourceName(TokenType::PRINT),  TokenType::PRINT},
+    {tokenTypeToSourceName(TokenType::RETURN), TokenType::RETURN},
+    {tokenTypeToSourceName(TokenType::SUPER),  TokenType::SUPER},
+    {tokenTypeToSourceName(TokenType::THIS),   TokenType::THIS},
+    {tokenTypeToSourceName(TokenType::TRUE),   TokenType::TRUE},
+    {tokenTypeToSourceName(TokenType::VAR),    TokenType::VAR},
+    {tokenTypeToSourceName(TokenType::WHILE),  TokenType::WHILE}
 };

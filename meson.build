@@ -2,13 +2,26 @@ project('slox', 'cpp',
         version : '0.0.1',
         default_options : ['cpp_std=c++20', 'warning_level=3'])
 
-# Executables
+# Dependencies
 fmt_dep = dependency('fmt')
-sources = ['main.cpp', 'src/interpreter.cpp', 'src/lexer.cpp', 'src/utils.cpp']
-executable('sloxi', sources, dependencies: fmt_dep)
 
-# Tests
+# Libraries
+slox_static_sources = ['src/interpreter.cpp', 'src/lexer.cpp', 'src/utils.cpp']
+slox_static_lib = static_library('libslox', slox_static_sources,
+                                 dependencies: fmt_dep)
+
+# Executables
+interpreter_sources = ['main.cpp']
+executable('sloxi', interpreter_sources,
+           link_with: slox_static_lib,
+           dependencies: fmt_dep)
+
+# Tests + test dependencies.
 gtest_dep = dependency('gtest')
-tests = executable('unittest', 'test/main.cpp',
+unittest_sources = ['test/main.cpp', 'test/lexer.cpp']
+tests = executable('unittest', unittest_sources,
+                   d_unittest: true,
+                   install: false,
+                   link_with: slox_static_lib,
                    dependencies: gtest_dep)
 test('unittests', tests)

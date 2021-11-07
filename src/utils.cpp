@@ -10,5 +10,5 @@ void error(int line, std::string message)
 
 void report(int line, std::string where, std::string message)
 {
-    fmt::print("[line {}] Error {}: {}\n", line, where, message);
+    fmt::print(stderr, "[line {}] Error {}: {}\n", line, where, message);
 }
