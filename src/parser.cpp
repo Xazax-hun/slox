@@ -102,8 +102,37 @@ std::optional<ExpressionIndex> Parser::primary()
         return context.makeGrouping(begin, expr, end);
     }
 
-    // TODO: emit diagnostic.
+    error(peek(), "Unexpected token.");
     return std::nullopt;
+}
+
+void Parser::synchronize()
+{
+    advance();
+
+    while(!isAtEnd())
+    {
+        if (previous().type == TokenType::SEMICOLON)
+            return;
+
+        switch(peek().type)
+        {
+            case TokenType::CLASS:
+            case TokenType::FUN:
+            case TokenType::VAR:
+            case TokenType::FOR:
+            case TokenType::IF:
+            case TokenType::WHILE:
+            case TokenType::PRINT:
+            case TokenType::RETURN:
+                return;
+            
+            default:
+                break;
+        }
+
+        advance();
+    }
 }
 
 void Parser::error(Token t, std::string message)

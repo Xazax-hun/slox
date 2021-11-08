@@ -26,6 +26,8 @@ private:
     std::optional<ExpressionIndex> unary();
     std::optional<ExpressionIndex> primary();
 
+    void synchronize();
+
     Token peek() { return tokens[current]; }
     Token previous() { return tokens[current - 1]; }
     bool isAtEnd() { return peek().type == TokenType::END_OF_FILE; }

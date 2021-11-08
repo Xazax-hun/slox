@@ -10,10 +10,10 @@ struct Binary;
 struct Unary;
 struct Literal;
 struct Grouping;
-struct ASTContext;
 
 template<typename T>
-struct Index {
+struct Index
+{
     using type = T;
     unsigned id; 
     constexpr Index(unsigned id) : id(id) {}
