@@ -56,8 +56,11 @@ bool runSource(std::string sourceText, bool dumpAst)
     }
 
     Interpreter interpreter(parser.getContext());
-    std::cout << print(interpreter.evaluate(*maybeAst)) << std::endl;
+    auto maybeResult = interpreter.evaluate(*maybeAst);
+    if (!maybeResult)
+        return false;
 
+    std::cout << print(*maybeResult) << std::endl;
     return true;
 }
 
@@ -69,10 +72,17 @@ std::string print(const RuntimeValue& val)
     }, val);
 }
 
-RuntimeValue Interpreter::evaluate(ExpressionIndex expr)
+std::optional<RuntimeValue> Interpreter::evaluate(ExpressionIndex expr)
 {
-    auto node = ctxt.getNode(expr);
-    return std::visit(visitor, node);
+    try
+    {
+        return eval(expr);
+    }
+    catch(const RuntimeError& e)
+    {
+        error(e.where.line, e.message);
+        return std::nullopt;
+    }
 }
 
 bool Interpreter::isTruthy(const RuntimeValue& val)
@@ -86,6 +96,18 @@ bool Interpreter::isTruthy(const RuntimeValue& val)
     return true;
 }
 
+void Interpreter::checkNumberOperand(const RuntimeValue& val, const Token& token)
+{
+    if (!std::get_if<double>(&val))
+        throw RuntimeError{token, "Operand must evaluate to a number."};
+}
+
+RuntimeValue Interpreter::eval(ExpressionIndex expr)
+{
+    auto node = ctxt.getNode(expr);
+    return std::visit(visitor, node);
+}
+
 RuntimeValue Interpreter::EvalVisitor::operator()(const Literal* l) const
 {
     return std::visit([](auto&& arg) -> RuntimeValue {
@@ -95,12 +117,12 @@ RuntimeValue Interpreter::EvalVisitor::operator()(const Literal* l) const
 
 RuntimeValue Interpreter::EvalVisitor::operator()(const Unary* u) const
 {
-    RuntimeValue inner = i.evaluate(u->subExpr);
+    RuntimeValue inner = i.eval(u->subExpr);
     
     switch (u->op.type)
     {
     case TokenType::MINUS:
-        // TODO: runtime check
+        checkNumberOperand(inner, u->op);
         return -std::get<double>(inner);
 
     case TokenType::BANG:
@@ -116,37 +138,51 @@ RuntimeValue Interpreter::EvalVisitor::operator()(const Unary* u) const
 
 RuntimeValue Interpreter::EvalVisitor::operator()(const Binary* b) const
 {
-    RuntimeValue left = i.evaluate(b->left);
-    RuntimeValue right = i.evaluate(b->right);
+    RuntimeValue left = i.eval(b->left);
+    RuntimeValue right = i.eval(b->right);
 
     switch (b->op.type)
     {
         // Arithmetic.
         case TokenType::SLASH:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) / std::get<double>(right);
         case TokenType::STAR:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) * std::get<double>(right);
         case TokenType::MINUS:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) - std::get<double>(right);
         case TokenType::PLUS:
-            // TODO: runtime check and string concat
-            return std::get<double>(left) + std::get<double>(right);
+            if (left.index() != right.index())
+                throw RuntimeError{b->op, "Operands' type mismatch."};
+
+            if (std::get_if<double>(&left))
+                return std::get<double>(left) + std::get<double>(right);
+            else if (std::get_if<std::string>(&left))
+                return std::get<std::string>(left) + std::get<std::string>(right);
+
+            throw RuntimeError{b->op, "Operands with unsupported type."};
 
         // Comparison.
         case TokenType::GREATER:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) > std::get<double>(right);
         case TokenType::GREATER_EQUAL:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) >= std::get<double>(right);
         case TokenType::LESS:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) < std::get<double>(right);
         case TokenType::LESS_EQUAL:
-            // TODO: runtime check
+            checkNumberOperand(left, b->op);
+            checkNumberOperand(right, b->op);
             return std::get<double>(left) <= std::get<double>(right);
         case TokenType::EQUAL_EQUAL:
             return left == right;
@@ -155,12 +191,11 @@ RuntimeValue Interpreter::EvalVisitor::operator()(const Binary* b) const
             break;
     }
 
-    // TODO: report error.
-    return Nil{};
+    throw RuntimeError{b->op, "Unexpected value."};
 }
 
 RuntimeValue Interpreter::EvalVisitor::operator()(const Grouping* g) const
 {
-    return i.evaluate(g->subExpr);
+    return i.eval(g->subExpr);
 }
 
