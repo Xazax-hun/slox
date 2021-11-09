@@ -8,9 +8,9 @@
 #include <include/ast.h>
 #include <fmt/format.h>
 
-bool runFile(std::string_view path);
+bool runFile(std::string_view path, bool dumpAst = false);
 bool runSource(std::string sourceText, bool dumpAst = false);
-bool runPrompt();
+bool runPrompt(bool dumpAst = false);
 
 struct Nil{};
 template <> struct fmt::formatter<Nil> {
@@ -28,7 +28,7 @@ inline bool operator==(Nil, Nil) { return true; }
 // TODO: Add representation of objects.
 using RuntimeValue = std::variant<Nil, std::string, double, bool>;
 
-std::string print(RuntimeValue);
+std::string print(const RuntimeValue&);
 
 class Interpreter
 {
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    static bool isTruthy(RuntimeValue val);
+    static bool isTruthy(const RuntimeValue& val);
 
     const ASTContext& ctxt;
 

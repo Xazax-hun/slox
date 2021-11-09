@@ -18,7 +18,7 @@ std::optional<ExpressionIndex> Parser::equality()
 
     while(match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL))
     {
-        Token op = previous();
+        const Token& op = previous();
         BIND(right, comparison());
         expr = context.makeBinary(expr, op, right);
     }
@@ -33,7 +33,7 @@ std::optional<ExpressionIndex> Parser::comparison()
     while(match(TokenType::GREATER, TokenType::GREATER_EQUAL,
                 TokenType::LESS, TokenType::LESS_EQUAL))
     {
-        Token op = previous();
+        const Token& op = previous();
         BIND(right, term());
         expr = context.makeBinary(expr, op, right);
     }
@@ -47,7 +47,7 @@ std::optional<ExpressionIndex> Parser::term()
 
     while(match(TokenType::MINUS, TokenType::PLUS))
     {
-        Token op = previous();
+        const Token& op = previous();
         BIND(right, factor());
         expr = context.makeBinary(expr, op, right);
     }
@@ -61,7 +61,7 @@ std::optional<ExpressionIndex> Parser::factor()
 
     while(match(TokenType::SLASH, TokenType::STAR))
     {
-        Token op = previous();
+        const Token& op = previous();
         BIND(right, unary());
         expr = context.makeBinary(expr, op, right);
     }
@@ -73,7 +73,7 @@ std::optional<ExpressionIndex> Parser::unary()
 {
     if (match(TokenType::BANG, TokenType::MINUS))
     {
-        Token op = previous();
+        const Token& op = previous();
         BIND(subExpr, unary());
         return context.makeUnary(op, subExpr);
     }
@@ -95,10 +95,10 @@ std::optional<ExpressionIndex> Parser::primary()
 
     if (match(TokenType::LEFT_PAREN))
     {
-        Token begin = previous();
+        const Token& begin = previous();
         BIND(expr, expression());
         consume(TokenType::RIGHT_PAREN, "Expect ')' after expression");
-        Token end = previous();
+        const Token& end = previous();
         return context.makeGrouping(begin, expr, end);
     }
 
@@ -135,14 +135,14 @@ void Parser::synchronize()
     }
 }
 
-void Parser::error(Token t, std::string message)
+void Parser::error(const Token& t, std::string message)
 {
     if (t.type == TokenType::END_OF_FILE)
     {
-        report(t.line, " at end", message);
+        report(t.line, " at end", std::move(message));
     }
     else
     {
-        report(t.line, fmt::format(" at '{}'", print(t)), message);
+        report(t.line, fmt::format(" at '{}'", print(t)), std::move(message));
     }
 }

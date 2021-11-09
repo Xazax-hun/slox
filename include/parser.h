@@ -28,11 +28,11 @@ private:
 
     void synchronize();
 
-    Token peek() { return tokens[current]; }
-    Token previous() { return tokens[current - 1]; }
-    bool isAtEnd() { return peek().type == TokenType::END_OF_FILE; }
+    const Token& peek() const { return tokens[current]; }
+    const Token& previous() const { return tokens[current - 1]; }
+    bool isAtEnd() const { return peek().type == TokenType::END_OF_FILE; }
 
-    bool check(TokenType type)
+    bool check(TokenType type) const
     {
         if (isAtEnd()) return false;
         return peek().type == type;
@@ -47,22 +47,22 @@ private:
         return b;
     }
 
-    Token advance()
+    const Token& advance()
     {
         if (!isAtEnd()) ++current;
         return previous();
     }
 
-    std::optional<Token> consume(TokenType type, std::string message)
+    std::optional<const Token*> consume(TokenType type, std::string message)
     {
         if (check(type))
-            return advance();
+            return &advance();
 
-        error(peek(), message);
+        error(peek(), std::move(message));
         return std::nullopt;
     }
 
-    void error(Token t, std::string message);
+    void error(const Token& t, std::string message);
 
     std::vector<Token> tokens;
     ASTContext context;

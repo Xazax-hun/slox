@@ -27,59 +27,61 @@ using ExpressionIndex = std::variant<Index<Binary>, Index<Unary>,
 
 struct Binary
 {
-    Token op;
+    const Token& op;
     ExpressionIndex left, right;
 
     // TODO: remove once compiler is standard conforming.
-    Binary(Token op, ExpressionIndex left, ExpressionIndex right) : op(op), left(left), right(right) {}
+    Binary(const Token& op, ExpressionIndex left, ExpressionIndex right)
+        : op(op), left(left), right(right) {}
 };
 
 struct Unary
 {
-    Token op;
+    const Token& op;
     ExpressionIndex subExpr;
 
-    Unary(Token op, ExpressionIndex subExpr) : op(op), subExpr(subExpr) {}
+    Unary(const Token& op, ExpressionIndex subExpr) : op(op), subExpr(subExpr) {}
 };
 
 struct Literal
 {
-    Token value;
+    const Token& value;
 
-    Literal (Token value) : value(value) {}
+    Literal (const Token& value) : value(value) {}
 };
 
 struct Grouping
 {
-    Token begin;
-    Token end;
+    const Token& begin;
+    const Token& end;
     ExpressionIndex subExpr;
 
-    Grouping(Token begin, Token end, ExpressionIndex subExpr) : begin(begin), end(end), subExpr(subExpr) {}
+    Grouping(const Token& begin, const Token& end, ExpressionIndex subExpr)
+        : begin(begin), end(end), subExpr(subExpr) {}
 };
 
 class ASTContext
 {
 public:
-    Index<Binary> makeBinary(ExpressionIndex left, Token t, ExpressionIndex right)
+    Index<Binary> makeBinary(ExpressionIndex left, const Token& t, ExpressionIndex right)
     {
         binaries.emplace_back(t, left, right);
         return binaries.size() - 1;
     }
 
-    Index<Unary> makeUnary(Token t, ExpressionIndex subExpr)
+    Index<Unary> makeUnary(const Token& t, ExpressionIndex subExpr)
     {
         unaries.emplace_back(t, subExpr);
         return unaries.size() - 1;
     }
 
-    Index<Literal> makeLiteral(Token t)
+    Index<Literal> makeLiteral(const Token& t)
     {
         literals.emplace_back(t);
         return literals.size() - 1;
     }
 
-    Index<Grouping> makeGrouping(Token begin, ExpressionIndex subExpr, Token end)
+    Index<Grouping> makeGrouping(const Token& begin, ExpressionIndex subExpr, const Token& end)
     {
         groupings.emplace_back(begin, end, subExpr);
         return groupings.size() - 1;

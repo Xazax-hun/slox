@@ -92,6 +92,8 @@ struct Token
 
     // The value of string, number literals.
     // The name of identifiers.
+    // TODO: can we just reference the source text
+    //       for string literals and identifier names?
     using Value = std::variant<std::string, double>;
     Value value;
 
@@ -99,7 +101,7 @@ struct Token
         type(type), line(line), value(std::move(value)) {}
 };
 
-std::string print(Token);
+std::string print(const Token&);
 
 class Lexer
 {
@@ -115,15 +117,15 @@ private:
     std::optional<Token> lexIdentifier();
     bool isAtEnd() const { return static_cast<unsigned>(current) >= source.length(); }
     char advance() { return source[current++]; }
-    char peek();
-    char peekNext();
+    char peek() const;
+    char peekNext() const;
     bool match(char expected);
 
     std::string source;
     int start = 0;
     int current = 0;
     int line = 1;
-    bool hasError = false;
+    bool hasError = false; // TODO: get rid of this.
 
     static const std::unordered_map<std::string_view, TokenType> keywords;
 };

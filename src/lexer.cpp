@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <sstream>
 
-std::string print(Token t)
+std::string print(const Token& t)
 {
     switch (t.type)
     {
@@ -180,14 +180,14 @@ bool Lexer::match(char expected)
     return true;
 }
 
-char Lexer::peek()
+char Lexer::peek() const
 {
     if (isAtEnd())
         return false;
     return source[current];
 }
 
-char Lexer::peekNext()
+char Lexer::peekNext() const
 {
     if (static_cast<unsigned>(current + 1) >= source.length())
         return false;

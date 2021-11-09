@@ -4,14 +4,13 @@
 #include <sstream>
 #include <iostream>
 
-
 #include <include/lexer.h>
 #include <include/ast.h>
 #include <include/parser.h>
 
 constexpr std::string_view prompt{"> "};
 
-bool runFile(std::string_view path)
+bool runFile(std::string_view path, bool dumpAst)
 {
     std::ifstream file(path.data());
     if (!file) 
@@ -21,10 +20,10 @@ bool runFile(std::string_view path)
     //       the full source text in memory.
     std::stringstream buffer;
     buffer << file.rdbuf();
-    return runSource(std::move(buffer).str());
+    return runSource(std::move(buffer).str(), dumpAst);
 }
 
-bool runPrompt()
+bool runPrompt(bool dumpAst)
 {
     std::string line;
     while (true)
@@ -32,7 +31,7 @@ bool runPrompt()
         std::cout << ::prompt;
         if (!std::getline(std::cin, line))
             break;
-        if (!runSource(std::move(line)))
+        if (!runSource(std::move(line), dumpAst))
             return false;
     }
     return true;
@@ -63,7 +62,7 @@ bool runSource(std::string sourceText, bool dumpAst)
 }
 
 
-std::string print(RuntimeValue val)
+std::string print(const RuntimeValue& val)
 {
     return std::visit([](auto&& arg) {
         return fmt::format("{}", arg);
@@ -76,7 +75,7 @@ RuntimeValue Interpreter::evaluate(ExpressionIndex expr)
     return std::visit(visitor, node);
 }
 
-bool Interpreter::isTruthy(RuntimeValue val)
+bool Interpreter::isTruthy(const RuntimeValue& val)
 {
     if (auto boolVal = std::get_if<bool>(&val))
         return *boolVal;
