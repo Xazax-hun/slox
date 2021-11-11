@@ -23,16 +23,38 @@ bool runFile(std::string_view path, bool dumpAst)
     return runSource(std::move(buffer).str(), dumpAst);
 }
 
+// TODO: use a proper REPL library like readline.
 bool runPrompt(bool dumpAst)
 {
     std::string line;
+    // TODO: more sophisticated solution for persisting env across lines.
+    Environment env;
     while (true)
     {
         std::cout << ::prompt;
         if (!std::getline(std::cin, line))
             break;
-        if (!runSource(std::move(line), dumpAst))
+        Lexer lexer(line);
+        auto maybeTokens = lexer.lexAll();
+        if (!maybeTokens)
             return false;
+
+        Parser parser(std::move(*maybeTokens));
+        auto maybeAst = parser.parse();
+        if (!maybeAst)
+            return false;
+
+        if (dumpAst)
+        {
+            ASTPrinter printer(parser.getContext());
+            std::cout << printer.print(*maybeAst) << std::endl;
+        }
+
+        Interpreter interpreter(parser.getContext(), env);
+        if (!interpreter.evaluate(*maybeAst))
+            return false;
+        
+        env = interpreter.getEnv();
     }
     return true;
 }
@@ -56,11 +78,9 @@ bool runSource(std::string sourceText, bool dumpAst)
     }
 
     Interpreter interpreter(parser.getContext());
-    auto maybeResult = interpreter.evaluate(*maybeAst);
-    if (!maybeResult)
+    if (!interpreter.evaluate(*maybeAst))
         return false;
 
-    std::cout << print(*maybeResult) << std::endl;
     return true;
 }
 
@@ -70,6 +90,20 @@ std::string print(const RuntimeValue& val)
     return std::visit([](auto&& arg) {
         return fmt::format("{}", arg);
     }, val);
+}
+
+bool Interpreter::evaluate(StatementIndex stmt)
+{
+    try
+    {
+        eval(stmt);
+        return true;
+    }
+    catch(const RuntimeError& e)
+    {
+        error(e.where.line, e.message);
+        return false;
+    }
 }
 
 std::optional<RuntimeValue> Interpreter::evaluate(ExpressionIndex expr)
@@ -105,17 +139,23 @@ void Interpreter::checkNumberOperand(const RuntimeValue& val, const Token& token
 RuntimeValue Interpreter::eval(ExpressionIndex expr)
 {
     auto node = ctxt.getNode(expr);
-    return std::visit(visitor, node);
+    return std::visit(exprVisitor, node);
 }
 
-RuntimeValue Interpreter::EvalVisitor::operator()(const Literal* l) const
+void Interpreter::eval(StatementIndex stmt)
+{
+    auto node = ctxt.getNode(stmt);
+    std::visit(stmtVisitor, node);
+}
+
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Literal* l) const
 {
     return std::visit([](auto&& arg) -> RuntimeValue {
         return arg;
     }, l->value.value);
 }
 
-RuntimeValue Interpreter::EvalVisitor::operator()(const Unary* u) const
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Unary* u) const
 {
     RuntimeValue inner = i.eval(u->subExpr);
     
@@ -132,11 +172,10 @@ RuntimeValue Interpreter::EvalVisitor::operator()(const Unary* u) const
         break;
     }
 
-    // TODO: report error.
-    return Nil{};
+    throw RuntimeError{u->op, "Unexpected unary operator."};
 }
 
-RuntimeValue Interpreter::EvalVisitor::operator()(const Binary* b) const
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 {
     RuntimeValue left = i.eval(b->left);
     RuntimeValue right = i.eval(b->right);
@@ -194,8 +233,47 @@ RuntimeValue Interpreter::EvalVisitor::operator()(const Binary* b) const
     throw RuntimeError{b->op, "Unexpected value."};
 }
 
-RuntimeValue Interpreter::EvalVisitor::operator()(const Grouping* g) const
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
+{
+    RuntimeValue value = i.eval(a->value);
+    if (!i.globalEnv.assign(std::get<std::string>(a->name.value), value))
+        throw RuntimeError{a->name, "Undefined variable."};
+
+    return value;
+}
+
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
 {
     return i.eval(g->subExpr);
+}
+
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
+{
+    if (auto val = i.globalEnv.get(std::get<std::string>(r->name.value)))
+        return *val;
+
+    throw RuntimeError{r->name, "Undefined variable."};
+}
+
+void Interpreter::StmtEvalVisitor::operator()(const PrintStatement* s) const
+{
+    RuntimeValue value = i.eval(s->subExpr);
+    std::cout << print(value) << "\n";
+}
+
+void Interpreter::StmtEvalVisitor::operator()(const ExprStatement* s) const
+{
+    i.eval(s->subExpr);
+}
+
+void Interpreter::StmtEvalVisitor::operator()(const VarDecl* s) const
+{
+    RuntimeValue val;
+    if (s->init)
+        val = i.eval(*s->init);
+    else
+        val = Nil{};
+
+    i.globalEnv.define(std::get<std::string>(s->name.value), val);
 }
 

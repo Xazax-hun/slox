@@ -4,6 +4,7 @@
 #include <string_view>
 #include <string>
 #include <variant>
+#include <unordered_map>
 
 #include <include/ast.h>
 #include <fmt/format.h>
@@ -39,34 +40,79 @@ struct RuntimeError
 
 // TODO: Add representation of objects.
 using RuntimeValue = std::variant<Nil, std::string, double, bool>;
-
 std::string print(const RuntimeValue&);
+
+class Environment
+{
+public:
+    void define(std::string_view name, const RuntimeValue& value)
+    {
+        values.insert_or_assign(name, value);
+    }
+
+    bool assign(std::string_view name, const RuntimeValue& value)
+    {
+        if (auto it = values.find(name); it != values.end())
+        {
+            it->second = value;
+            return true;
+        }
+
+        return false;
+    }
+
+    std::optional<RuntimeValue> get(std::string_view name) const
+    {
+        if (auto it = values.find(name); it != values.end())
+            return it->second;
+
+        return std::nullopt; 
+    }
+
+private:
+    std::unordered_map<std::string_view, RuntimeValue> values;
+};
 
 // Evaluation logic.
 class Interpreter
 {
 public:
-    Interpreter(const ASTContext& ctxt) : ctxt{ctxt}, visitor{*this} {}
+    Interpreter(const ASTContext& ctxt, Environment env = {})
+        : ctxt{ctxt}, globalEnv(std::move(env)) {}
 
     std::optional<RuntimeValue> evaluate(ExpressionIndex expr);
+    bool evaluate(StatementIndex stmt);
 
+    const ASTContext& getContext() { return ctxt; }
+    Environment getEnv() { return globalEnv; }
 private:
-
     RuntimeValue eval(ExpressionIndex expr);
+    void eval(StatementIndex expr);
 
     static bool isTruthy(const RuntimeValue& val);
     static void checkNumberOperand(const RuntimeValue& val, const Token& token);
 
     const ASTContext& ctxt;
+    Environment globalEnv;
 
-    struct EvalVisitor
+    struct ExprEvalVisitor
     {
         Interpreter& i;
         RuntimeValue operator()(const Binary* b) const;
+        RuntimeValue operator()(const Assign* a) const;
         RuntimeValue operator()(const Unary* u) const;
         RuntimeValue operator()(const Literal* l) const;
         RuntimeValue operator()(const Grouping* l) const;
-    } visitor;
+        RuntimeValue operator()(const DeclRef* r) const;
+    } exprVisitor{*this};
+
+    struct StmtEvalVisitor
+    {
+        Interpreter& i;
+        void operator()(const PrintStatement* s) const;
+        void operator()(const ExprStatement* s) const;
+        void operator()(const VarDecl* s) const;
+    } stmtVisitor{*this};
 };
 
 #endif
