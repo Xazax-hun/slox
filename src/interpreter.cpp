@@ -101,7 +101,7 @@ bool Interpreter::evaluate(StatementIndex stmt)
     }
     catch(const RuntimeError& e)
     {
-        error(e.where.line, e.message);
+        error(ctxt.getToken(e.where).line, e.message);
         return false;
     }
 }
@@ -114,7 +114,7 @@ std::optional<RuntimeValue> Interpreter::evaluate(ExpressionIndex expr)
     }
     catch(const RuntimeError& e)
     {
-        error(e.where.line, e.message);
+        error(ctxt.getToken(e.where).line, e.message);
         return std::nullopt;
     }
 }
@@ -130,7 +130,7 @@ bool Interpreter::isTruthy(const RuntimeValue& val)
     return true;
 }
 
-void Interpreter::checkNumberOperand(const RuntimeValue& val, const Token& token)
+void Interpreter::checkNumberOperand(const RuntimeValue& val, Index<Token> token)
 {
     if (!std::get_if<double>(&val))
         throw RuntimeError{token, "Operand must evaluate to a number."};
@@ -152,14 +152,14 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Literal* l) const
 {
     return std::visit([](auto&& arg) -> RuntimeValue {
         return arg;
-    }, l->value.value);
+    }, i.ctxt.getToken(l->value).value);
 }
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Unary* u) const
 {
     RuntimeValue inner = i.eval(u->subExpr);
     
-    switch (u->op.type)
+    switch (i.ctxt.getToken(u->op).type)
     {
     case TokenType::MINUS:
         checkNumberOperand(inner, u->op);
@@ -180,7 +180,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
     RuntimeValue left = i.eval(b->left);
     RuntimeValue right = i.eval(b->right);
 
-    switch (b->op.type)
+    switch (i.ctxt.getToken(b->op).type)
     {
         // Arithmetic.
         case TokenType::SLASH:
@@ -236,7 +236,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
 {
     RuntimeValue value = i.eval(a->value);
-    if (!i.globalEnv.assign(std::get<std::string>(a->name.value), value))
+    if (!i.globalEnv.assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
         throw RuntimeError{a->name, "Undefined variable."};
 
     return value;
@@ -249,7 +249,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 {
-    if (auto val = i.globalEnv.get(std::get<std::string>(r->name.value)))
+    if (auto val = i.globalEnv.get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
         return *val;
 
     throw RuntimeError{r->name, "Undefined variable."};
@@ -274,6 +274,6 @@ void Interpreter::StmtEvalVisitor::operator()(const VarDecl* s) const
     else
         val = Nil{};
 
-    i.globalEnv.define(std::get<std::string>(s->name.value), val);
+    i.globalEnv.define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
 }
 

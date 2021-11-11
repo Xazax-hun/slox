@@ -11,7 +11,7 @@
 class Parser
 {
 public:
-    Parser(std::vector<Token> tokens) : tokens(std::move(tokens)) {}
+    Parser(std::vector<Token> tokens) : context(std::move(tokens)) {}
 
     std::optional<StatementIndex> parse() { return declaration(); }
 
@@ -39,14 +39,17 @@ private:
     void synchronize();
 
     // Utilities.
-    const Token& peek() const { return tokens[current]; }
-    const Token& previous() const { return tokens[current - 1]; }
-    bool isAtEnd() const { return peek().type == TokenType::END_OF_FILE; }
+    Index<Token> peek() const { return current; }
+    Index<Token> previous() const { return current - 1; }
+    bool isAtEnd() const
+    {
+        return context.getToken(peek()).type == TokenType::END_OF_FILE;
+    }
 
     bool check(TokenType type) const
     {
         if (isAtEnd()) return false;
-        return peek().type == type;
+        return context.getToken(peek()).type == type;
     }
 
     template<typename... T>
@@ -58,24 +61,23 @@ private:
         return b;
     }
 
-    const Token& advance()
+    Index<Token> advance()
     {
         if (!isAtEnd()) ++current;
         return previous();
     }
 
-    std::optional<const Token*> consume(TokenType type, std::string message)
+    std::optional<Index<Token>> consume(TokenType type, std::string message)
     {
         if (check(type))
-            return &advance();
+            return advance();
 
         error(peek(), std::move(message));
         return std::nullopt;
     }
 
-    void error(const Token& t, std::string message);
+    void error(Index<Token> t, std::string message);
 
-    std::vector<Token> tokens;
     ASTContext context;
     unsigned current = 0;
 };

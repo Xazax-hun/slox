@@ -42,53 +42,53 @@ using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
 
 struct Binary
 {
-    const Token& op;
+    Index<Token> op;
     ExpressionIndex left, right;
 
     // TODO: remove once compiler is standard conforming.
-    Binary(const Token& op, ExpressionIndex left, ExpressionIndex right)
+    Binary(Index<Token> op, ExpressionIndex left, ExpressionIndex right)
         : op(op), left(left), right(right) {}
 };
 
 struct Assign
 {
-    const Token& name;
+    Index<Token> name;
     ExpressionIndex value;
 
-    Assign(const Token& name, ExpressionIndex value)
+    Assign(Index<Token> name, ExpressionIndex value)
         : name(name), value(value) {}
 };
 
 struct Unary
 {
-    const Token& op;
+    Index<Token> op;
     ExpressionIndex subExpr;
 
-    Unary(const Token& op, ExpressionIndex subExpr) : op(op), subExpr(subExpr) {}
+    Unary(Index<Token> op, ExpressionIndex subExpr) : op(op), subExpr(subExpr) {}
 };
 
 struct Literal
 {
-    const Token& value;
+    Index<Token> value;
 
-    Literal (const Token& value) : value(value) {}
+    Literal (Index<Token> value) : value(value) {}
 };
 
 struct Grouping
 {
-    const Token& begin;
-    const Token& end;
+    Index<Token> begin;
+    Index<Token> end;
     ExpressionIndex subExpr;
 
-    Grouping(const Token& begin, const Token& end, ExpressionIndex subExpr)
+    Grouping(Index<Token> begin, Index<Token> end, ExpressionIndex subExpr)
         : begin(begin), end(end), subExpr(subExpr) {}
 };
 
 struct DeclRef
 {
-    const Token& name;
+    Index<Token> name;
 
-    DeclRef(const Token& name) : name(name) {}
+    DeclRef(Index<Token> name) : name(name) {}
 };
 
 struct ExprStatement
@@ -107,70 +107,62 @@ struct PrintStatement
 
 struct VarDecl
 {
-    const Token& name;
+    Index<Token> name;
     std::optional<ExpressionIndex> init;
 
-    VarDecl(const Token& name, std::optional<ExpressionIndex> init) : name(name), init(init) {}
+    VarDecl(Index<Token> name, std::optional<ExpressionIndex> init) : name(name), init(init) {}
 };
 
 class ASTContext
 {
 public:
+    ASTContext(std::vector<Token> tokens) : tokens(std::move(tokens)) {}
+
     // Expression factories.
-    Index<Binary> makeBinary(ExpressionIndex left, const Token& t, ExpressionIndex right)
+    Index<Binary> makeBinary(ExpressionIndex left, Index<Token> t, ExpressionIndex right)
     {
-        // TODO: replace the two lines boilerplate with a single line function call.
-        binaries.emplace_back(t, left, right);
-        return binaries.size() - 1;
+        return insert_node(binaries, t, left, right);
     }
 
-    Index<Binary> makeAssign(const Token& name, ExpressionIndex value)
+    Index<Assign> makeAssign(Index<Token> name, ExpressionIndex value)
     {
-        assignments.emplace_back(name, value);
-        return assignments.size() - 1;
+        return insert_node(assignments, name, value);
     }
 
-    Index<Unary> makeUnary(const Token& t, ExpressionIndex subExpr)
+    Index<Unary> makeUnary(Index<Token> t, ExpressionIndex subExpr)
     {
-        unaries.emplace_back(t, subExpr);
-        return unaries.size() - 1;
+        return insert_node(unaries, t, subExpr);
     }
 
-    Index<Literal> makeLiteral(const Token& t)
+    Index<Literal> makeLiteral(Index<Token> t)
     {
-        literals.emplace_back(t);
-        return literals.size() - 1;
+        return insert_node(literals, t);
     }
 
-    Index<Grouping> makeGrouping(const Token& begin, ExpressionIndex subExpr, const Token& end)
+    Index<Grouping> makeGrouping(Index<Token> begin, ExpressionIndex subExpr, Index<Token> end)
     {
-        groupings.emplace_back(begin, end, subExpr);
-        return groupings.size() - 1;
+        return insert_node(groupings, begin, end, subExpr);
     }
 
-    Index<DeclRef> makeDeclRef(const Token& name)
+    Index<DeclRef> makeDeclRef(Index<Token> name)
     {
-        declRefs.emplace_back(name);
-        return declRefs.size() - 1;
+        return insert_node(declRefs, name);
     }
 
     // Statement factories.
     Index<PrintStatement> makePrint(ExpressionIndex subExpr)
     {
-        prints.emplace_back(subExpr);
-        return prints.size() - 1;
+        return insert_node(prints, subExpr);
     }
 
     Index<ExprStatement> makeExprStmt(ExpressionIndex subExpr)
     {
-        exprStmts.emplace_back(subExpr);
-        return exprStmts.size() - 1;
+        return insert_node(exprStmts, subExpr);
     }
 
-    Index<VarDecl> makeVarDecl(const Token& name, std::optional<ExpressionIndex> init)
+    Index<VarDecl> makeVarDecl(Index<Token> name, std::optional<ExpressionIndex> init)
     {
-        varDecls.emplace_back(name, init);
-        return varDecls.size() - 1;
+        return insert_node(varDecls, name, init);
     }
     
     // Getters.
@@ -182,6 +174,11 @@ public:
     Statement getNode(StatementIndex idx) const
     {
         return std::visit(statementNodeGetter, idx);
+    }
+
+    const Token& getToken(Index<Token> idx) const
+    {
+        return tokens[idx.id];
     }
 
 private:
@@ -197,6 +194,8 @@ private:
     std::vector<PrintStatement>   prints;
     std::vector<ExprStatement>    exprStmts;
     std::vector<VarDecl>          varDecls;
+
+    std::vector<Token>            tokens;
 
     struct GetExprNode
     {
@@ -216,6 +215,14 @@ private:
         auto operator()(Index<ExprStatement> index) const    -> Statement { return &ctx.exprStmts[index.id]; }
         auto operator()(Index<VarDecl> index) const          -> Statement { return &ctx.varDecls[index.id]; }
     } statementNodeGetter{*this};
+
+
+    template<typename NodeContainer, typename... Args>
+    Index<typename NodeContainer::value_type> insert_node(NodeContainer& c, Args&&... args)
+    {
+        c.emplace_back(std::forward<Args>(args)...);
+        return c.size() - 1;
+    }
 };
 
 class ASTPrinter

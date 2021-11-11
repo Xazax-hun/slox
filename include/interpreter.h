@@ -34,7 +34,7 @@ inline bool operator==(Nil, Nil) { return true; }
 
 struct RuntimeError
 {
-    const Token& where;
+    Index<Token> where;
     std::string message;
 };
 
@@ -45,12 +45,12 @@ std::string print(const RuntimeValue&);
 class Environment
 {
 public:
-    void define(std::string_view name, const RuntimeValue& value)
+    void define(const std::string& name, const RuntimeValue& value)
     {
         values.insert_or_assign(name, value);
     }
 
-    bool assign(std::string_view name, const RuntimeValue& value)
+    bool assign(const std::string& name, const RuntimeValue& value)
     {
         if (auto it = values.find(name); it != values.end())
         {
@@ -61,7 +61,7 @@ public:
         return false;
     }
 
-    std::optional<RuntimeValue> get(std::string_view name) const
+    std::optional<RuntimeValue> get(const std::string& name) const
     {
         if (auto it = values.find(name); it != values.end())
             return it->second;
@@ -70,7 +70,8 @@ public:
     }
 
 private:
-    std::unordered_map<std::string_view, RuntimeValue> values;
+    // TODO: make this a string view.
+    std::unordered_map<std::string, RuntimeValue> values;
 };
 
 // Evaluation logic.
@@ -90,7 +91,7 @@ private:
     void eval(StatementIndex expr);
 
     static bool isTruthy(const RuntimeValue& val);
-    static void checkNumberOperand(const RuntimeValue& val, const Token& token);
+    static void checkNumberOperand(const RuntimeValue& val, Index<Token> token);
 
     const ASTContext& ctxt;
     Environment globalEnv;

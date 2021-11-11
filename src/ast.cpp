@@ -3,6 +3,11 @@
 #include <ostream>
 #include <utility>
 
+std::string print(Index<Token> t, const ASTContext& c)
+{
+    return print(c.getToken(t));
+}
+
 template<typename... T>
 std::string parenthesize(T&&... strings)
 {
@@ -28,22 +33,22 @@ std::string ASTPrinter::print(StatementIndex e) const
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const Binary* b) const
 {
-    return parenthesize(::print(b->op), printer.print(b->left), printer.print(b->right));
+    return parenthesize(::print(b->op, printer.c), printer.print(b->left), printer.print(b->right));
 }
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const Assign* a) const
 {
-    return parenthesize(std::string_view("="), ::print(a->name), printer.print(a->value));
+    return parenthesize(std::string_view("="), ::print(a->name, printer.c), printer.print(a->value));
 }
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const Unary* u) const
 {
-    return parenthesize(::print(u->op), printer.print(u->subExpr));
+    return parenthesize(::print(u->op, printer.c), printer.print(u->subExpr));
 }
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const Literal* l) const
 {
-    return ::print(l->value);
+    return ::print(l->value, printer.c);
 }
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const Grouping* l) const
@@ -53,7 +58,7 @@ std::string ASTPrinter::ExprPrintVisitor::operator()(const Grouping* l) const
 
 std::string ASTPrinter::ExprPrintVisitor::operator()(const DeclRef* r) const
 {
-    return ::print(r->name);
+    return ::print(r->name, printer.c);
 }
 
 std::string ASTPrinter::StmtPrintVisitor::operator()(const PrintStatement* s) const
@@ -69,5 +74,5 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const ExprStatement* s) con
 std::string ASTPrinter::StmtPrintVisitor::operator()(const VarDecl* s) const
 {
     std::string init = s->init ? printer.print(*s->init) : "<NULL>";
-    return parenthesize(std::string_view("var"), ::print(s->name), init);
+    return parenthesize(std::string_view("var"), ::print(s->name, printer.c), init);
 }

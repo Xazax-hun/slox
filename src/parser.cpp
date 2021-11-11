@@ -29,7 +29,7 @@ std::optional<Index<VarDecl>> Parser::varDeclaration()
     }
 
     consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-    return context.makeVarDecl(*name, init);
+    return context.makeVarDecl(name, init);
 }
 
 std::optional<StatementIndex> Parser::statement()
@@ -66,7 +66,7 @@ std::optional<ExpressionIndex> Parser::assignment()
 
     if (match(TokenType::EQUAL))
     {
-        const Token& equals = previous();
+        Index<Token> equals = previous();
         BIND(value, assignment());
 
         if (const auto* dRefId = get_if<Index<DeclRef>>(&expr))
@@ -88,7 +88,7 @@ std::optional<ExpressionIndex> Parser::equality()
 
     while(match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL))
     {
-        const Token& op = previous();
+        Index<Token> op = previous();
         BIND(right, comparison());
         expr = context.makeBinary(expr, op, right);
     }
@@ -103,7 +103,7 @@ std::optional<ExpressionIndex> Parser::comparison()
     while(match(TokenType::GREATER, TokenType::GREATER_EQUAL,
                 TokenType::LESS, TokenType::LESS_EQUAL))
     {
-        const Token& op = previous();
+        Index<Token> op = previous();
         BIND(right, term());
         expr = context.makeBinary(expr, op, right);
     }
@@ -117,7 +117,7 @@ std::optional<ExpressionIndex> Parser::term()
 
     while(match(TokenType::MINUS, TokenType::PLUS))
     {
-        const Token& op = previous();
+        Index<Token> op = previous();
         BIND(right, factor());
         expr = context.makeBinary(expr, op, right);
     }
@@ -131,7 +131,7 @@ std::optional<ExpressionIndex> Parser::factor()
 
     while(match(TokenType::SLASH, TokenType::STAR))
     {
-        const Token& op = previous();
+        Index<Token> op = previous();
         BIND(right, unary());
         expr = context.makeBinary(expr, op, right);
     }
@@ -143,7 +143,7 @@ std::optional<ExpressionIndex> Parser::unary()
 {
     if (match(TokenType::BANG, TokenType::MINUS))
     {
-        const Token& op = previous();
+        Index<Token> op = previous();
         BIND(subExpr, unary());
         return context.makeUnary(op, subExpr);
     }
@@ -168,10 +168,10 @@ std::optional<ExpressionIndex> Parser::primary()
 
     if (match(TokenType::LEFT_PAREN))
     {
-        const Token& begin = previous();
+        Index<Token> begin = previous();
         BIND(expr, expression());
         consume(TokenType::RIGHT_PAREN, "Expect ')' after expression");
-        const Token& end = previous();
+        Index<Token> end = previous();
         return context.makeGrouping(begin, expr, end);
     }
 
@@ -185,10 +185,10 @@ void Parser::synchronize()
 
     while(!isAtEnd())
     {
-        if (previous().type == TokenType::SEMICOLON)
+        if (context.getToken(previous()).type == TokenType::SEMICOLON)
             return;
 
-        switch(peek().type)
+        switch(context.getToken(peek()).type)
         {
             case TokenType::CLASS:
             case TokenType::FUN:
@@ -208,8 +208,9 @@ void Parser::synchronize()
     }
 }
 
-void Parser::error(const Token& t, std::string message)
+void Parser::error(Index<Token> tIdx, std::string message)
 {
+    const Token& t = context.getToken(tIdx);
     if (t.type == TokenType::END_OF_FILE)
     {
         report(t.line, " at end", std::move(message));
