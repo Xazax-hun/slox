@@ -4,6 +4,9 @@
 #include <sstream>
 #include <iostream>
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 #include <include/lexer.h>
 #include <include/ast.h>
 #include <include/parser.h>
@@ -23,7 +26,6 @@ bool runFile(std::string_view path, bool dumpAst)
     return runSource(std::move(buffer).str(), dumpAst);
 }
 
-// TODO: use a proper REPL library like readline.
 bool runPrompt(bool dumpAst)
 {
     std::string line;
@@ -32,9 +34,15 @@ bool runPrompt(bool dumpAst)
     Parser parser;
     while (true)
     {
-        std::cout << ::prompt;
-        if (!std::getline(std::cin, line))
-            break;
+        std::string line;
+        {
+            char *lineRaw = readline(::prompt.data());
+            if (!lineRaw)
+                break;
+            add_history(lineRaw);
+            line = lineRaw;
+        }
+
         Lexer lexer(line);
         auto maybeTokens = lexer.lexAll();
         if (!maybeTokens)
