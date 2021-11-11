@@ -19,6 +19,7 @@ struct DeclRef;
 struct ExprStatement;
 struct PrintStatement;
 struct VarDecl;
+struct Block;
 
 template<typename T>
 struct Index
@@ -32,13 +33,13 @@ using Expression = std::variant<const Binary*, const Assign*,
                                 const Unary*, const Literal*,
                                 const Grouping*, const DeclRef*>;
 using Statement = std::variant<const ExprStatement*, const PrintStatement*,
-                               const VarDecl*>;
+                               const VarDecl*, const Block*>;
 
 using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
                                      Index<Unary>, Index<Literal>,
                                      Index<Grouping>, Index<DeclRef>>;
 using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
-                                    Index<VarDecl>>;
+                                    Index<VarDecl>, Index<Block>>;
 
 struct Binary
 {
@@ -113,6 +114,13 @@ struct VarDecl
     VarDecl(Index<Token> name, std::optional<ExpressionIndex> init) : name(name), init(init) {}
 };
 
+struct Block
+{
+    std::vector<StatementIndex> statements;
+
+    Block(std::vector<StatementIndex> statements) : statements(std::move(statements)) {}
+};
+
 class ASTContext
 {
 public:
@@ -162,6 +170,11 @@ public:
     {
         return insert_node(varDecls, name, init);
     }
+
+    Index<Block> makeBlock(std::vector<StatementIndex> statements)
+    {
+        return insert_node(blocks, std::move(statements));
+    }
     
     // Getters.
     Expression getNode(ExpressionIndex idx) const
@@ -202,6 +215,7 @@ private:
     std::vector<PrintStatement>   prints;
     std::vector<ExprStatement>    exprStmts;
     std::vector<VarDecl>          varDecls;
+    std::vector<Block>            blocks;
 
     std::vector<Token>            tokens;
 
@@ -222,6 +236,7 @@ private:
         auto operator()(Index<PrintStatement> index) const   -> Statement { return &ctx.prints[index.id]; }
         auto operator()(Index<ExprStatement> index) const    -> Statement { return &ctx.exprStmts[index.id]; }
         auto operator()(Index<VarDecl> index) const          -> Statement { return &ctx.varDecls[index.id]; }
+        auto operator()(Index<Block> index) const            -> Statement { return &ctx.blocks[index.id]; }
     } statementNodeGetter{*this};
 
 
@@ -259,6 +274,7 @@ private:
         std::string operator()(const PrintStatement* s) const;
         std::string operator()(const ExprStatement* s) const;
         std::string operator()(const VarDecl* s) const;
+        std::string operator()(const Block* s) const;
     } stmtVisitor{*this};
 };
 

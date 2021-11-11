@@ -244,7 +244,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
 {
     RuntimeValue value = i.eval(a->value);
-    if (!i.globalEnv.assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
+    if (!i.currentEnv->assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
         throw RuntimeError{a->name, "Undefined variable."};
 
     return value;
@@ -257,7 +257,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 {
-    if (auto val = i.globalEnv.get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
+    if (auto val = i.currentEnv->get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
         return *val;
 
     throw RuntimeError{r->name, "Undefined variable."};
@@ -282,6 +282,20 @@ void Interpreter::StmtEvalVisitor::operator()(const VarDecl* s) const
     else
         val = Nil{};
 
-    i.globalEnv.define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
+    i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
 }
 
+void Interpreter::StmtEvalVisitor::operator()(const Block* s) const
+{
+    // TODO: RAII
+    auto previous = i.currentEnv;
+    Environment newEnv(i.currentEnv);
+    i.currentEnv = &newEnv;
+
+    for (auto child : s->statements)
+    {
+        i.eval(child);
+    }
+
+    i.currentEnv = previous;
+}

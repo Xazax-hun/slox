@@ -35,6 +35,7 @@ std::optional<Index<VarDecl>> Parser::varDeclaration()
 std::optional<StatementIndex> Parser::statement()
 {
     if (match(TokenType::PRINT)) return printStatement();
+    if (match(TokenType::LEFT_BRACE)) return block();
 
     return expressionStatement();
 }
@@ -45,6 +46,21 @@ std::optional<Index<PrintStatement>> Parser::printStatement()
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
 
     return context.makePrint(value);
+}
+
+std::optional<Index<Block>> Parser::block()
+{
+    std::vector<StatementIndex> statements;
+
+    while(!check(TokenType::RIGHT_BRACE) && !isAtEnd())
+    {
+        BIND(stmt, declaration());
+        statements.push_back(stmt);
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
+
+    return context.makeBlock(std::move(statements));
 }
 
 std::optional<Index<ExprStatement>> Parser::expressionStatement()

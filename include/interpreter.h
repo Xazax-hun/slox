@@ -45,6 +45,8 @@ std::string print(const RuntimeValue&);
 class Environment
 {
 public:
+    Environment(Environment* enclosing = nullptr) : enclosing(enclosing) {}
+
     void define(const std::string& name, const RuntimeValue& value)
     {
         values.insert_or_assign(name, value);
@@ -58,6 +60,9 @@ public:
             return true;
         }
 
+        if (enclosing)
+            return enclosing->assign(name, value);
+
         return false;
     }
 
@@ -66,12 +71,17 @@ public:
         if (auto it = values.find(name); it != values.end())
             return it->second;
 
+        if (enclosing)
+            return enclosing->get(name);
+
         return std::nullopt; 
     }
 
 private:
     // TODO: make this a string view.
     std::unordered_map<std::string, RuntimeValue> values;
+
+    Environment* enclosing;
 };
 
 // Evaluation logic.
@@ -79,7 +89,7 @@ class Interpreter
 {
 public:
     Interpreter(const ASTContext& ctxt, Environment env = {})
-        : ctxt{ctxt}, globalEnv(std::move(env)) {}
+        : ctxt{ctxt}, globalEnv(std::move(env)), currentEnv(&globalEnv) {}
 
     std::optional<RuntimeValue> evaluate(ExpressionIndex expr);
     bool evaluate(StatementIndex stmt);
@@ -95,6 +105,7 @@ private:
 
     const ASTContext& ctxt;
     Environment globalEnv;
+    Environment* currentEnv;
 
     struct ExprEvalVisitor
     {
@@ -113,6 +124,7 @@ private:
         void operator()(const PrintStatement* s) const;
         void operator()(const ExprStatement* s) const;
         void operator()(const VarDecl* s) const;
+        void operator()(const Block* s) const;
     } stmtVisitor{*this};
 };
 

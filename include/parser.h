@@ -25,6 +25,7 @@ private:
     std::optional<Index<VarDecl>> varDeclaration();
     std::optional<StatementIndex> statement();
     std::optional<Index<PrintStatement>> printStatement();
+    std::optional<Index<Block>> block();
     std::optional<Index<ExprStatement>> expressionStatement();
 
     // Expressions.

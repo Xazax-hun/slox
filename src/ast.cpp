@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <utility>
+#include <sstream>
 
 std::string print(Index<Token> t, const ASTContext& c)
 {
@@ -75,4 +76,18 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const VarDecl* s) const
 {
     std::string init = s->init ? printer.print(*s->init) : "<NULL>";
     return parenthesize(std::string_view("var"), ::print(s->name, printer.c), init);
+}
+
+std::string ASTPrinter::StmtPrintVisitor::operator()(const Block* s) const
+{
+    std::stringstream ss;
+    ss << "(block";
+
+    for (auto child : s->statements)
+    {
+        ss << " " << printer.print(child);
+    }
+
+    ss << ")";
+    return std::move(ss).str();
 }
