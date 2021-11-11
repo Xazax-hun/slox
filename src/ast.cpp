@@ -91,3 +91,16 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const Block* s) const
     ss << ")";
     return std::move(ss).str();
 }
+
+std::string ASTPrinter::StmtPrintVisitor::operator()(const IfStatement* s) const
+{
+    std::string elseDump = s->elseBranch ? printer.print(*s->elseBranch) : "<NULL>";
+    return parenthesize(std::string_view("if"), printer.print(s->condition),
+        printer.print(s->thenBranch), elseDump);
+}
+
+std::string ASTPrinter::StmtPrintVisitor::operator()(const WhileStatement* s) const
+{
+    return parenthesize(std::string_view("while"), printer.print(s->condition),
+        printer.print(s->body));
+}

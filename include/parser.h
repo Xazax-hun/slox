@@ -24,7 +24,9 @@ private:
     std::optional<StatementIndex> declaration();
     std::optional<Index<VarDecl>> varDeclaration();
     std::optional<StatementIndex> statement();
+    std::optional<Index<IfStatement>> ifStatement();
     std::optional<Index<PrintStatement>> printStatement();
+    std::optional<Index<WhileStatement>> whileStatement();
     std::optional<Index<Block>> block();
     std::optional<Index<ExprStatement>> expressionStatement();
 

@@ -299,3 +299,17 @@ void Interpreter::StmtEvalVisitor::operator()(const Block* s) const
 
     i.currentEnv = previous;
 }
+
+void Interpreter::StmtEvalVisitor::operator()(const IfStatement* s) const
+{
+    if (isTruthy(i.eval(s->condition)))
+        i.eval(s->thenBranch);
+    else if (s->elseBranch)
+        i.eval(*s->elseBranch);
+}
+
+void Interpreter::StmtEvalVisitor::operator()(const WhileStatement* s) const
+{
+    while (isTruthy(i.eval(s->condition)))
+        i.eval(s->body);
+}

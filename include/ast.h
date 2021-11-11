@@ -20,6 +20,8 @@ struct ExprStatement;
 struct PrintStatement;
 struct VarDecl;
 struct Block;
+struct IfStatement;
+struct WhileStatement;
 
 template<typename T>
 struct Index
@@ -33,13 +35,15 @@ using Expression = std::variant<const Binary*, const Assign*,
                                 const Unary*, const Literal*,
                                 const Grouping*, const DeclRef*>;
 using Statement = std::variant<const ExprStatement*, const PrintStatement*,
-                               const VarDecl*, const Block*>;
+                               const VarDecl*, const Block*,
+                               const IfStatement*, const WhileStatement*>;
 
 using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
                                      Index<Unary>, Index<Literal>,
                                      Index<Grouping>, Index<DeclRef>>;
 using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
-                                    Index<VarDecl>, Index<Block>>;
+                                    Index<VarDecl>, Index<Block>,
+                                    Index<IfStatement>, Index<WhileStatement>>;
 
 struct Binary
 {
@@ -121,6 +125,25 @@ struct Block
     Block(std::vector<StatementIndex> statements) : statements(std::move(statements)) {}
 };
 
+struct IfStatement
+{
+    ExpressionIndex condition;
+    StatementIndex thenBranch;
+    std::optional<StatementIndex> elseBranch;
+
+    IfStatement(ExpressionIndex condition, StatementIndex thenBranch, std::optional<StatementIndex> elseBranch)
+        : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
+};
+
+struct WhileStatement
+{
+    ExpressionIndex condition;
+    StatementIndex body;
+
+    WhileStatement(ExpressionIndex condition, StatementIndex body)
+        : condition(condition), body(body) {}
+};
+
 class ASTContext
 {
 public:
@@ -175,6 +198,16 @@ public:
     {
         return insert_node(blocks, std::move(statements));
     }
+
+    Index<IfStatement> makeIf(ExpressionIndex condition, StatementIndex thenBranch, std::optional<StatementIndex> elseBranch)
+    {
+        return insert_node(ifs, condition, thenBranch, elseBranch);
+    }
+
+    Index<WhileStatement> makeWhile(ExpressionIndex condition, StatementIndex body)
+    {
+        return insert_node(whiles, condition, body);
+    }
     
     // Getters.
     Expression getNode(ExpressionIndex idx) const
@@ -216,6 +249,8 @@ private:
     std::vector<ExprStatement>    exprStmts;
     std::vector<VarDecl>          varDecls;
     std::vector<Block>            blocks;
+    std::vector<IfStatement>      ifs;
+    std::vector<WhileStatement>   whiles;
 
     std::vector<Token>            tokens;
 
@@ -237,6 +272,8 @@ private:
         auto operator()(Index<ExprStatement> index) const    -> Statement { return &ctx.exprStmts[index.id]; }
         auto operator()(Index<VarDecl> index) const          -> Statement { return &ctx.varDecls[index.id]; }
         auto operator()(Index<Block> index) const            -> Statement { return &ctx.blocks[index.id]; }
+        auto operator()(Index<IfStatement> index) const      -> Statement { return &ctx.ifs[index.id]; }
+        auto operator()(Index<WhileStatement> index) const   -> Statement { return &ctx.whiles[index.id]; }
     } statementNodeGetter{*this};
 
 
@@ -275,6 +312,8 @@ private:
         std::string operator()(const ExprStatement* s) const;
         std::string operator()(const VarDecl* s) const;
         std::string operator()(const Block* s) const;
+        std::string operator()(const IfStatement* s) const;
+        std::string operator()(const WhileStatement* s) const;
     } stmtVisitor{*this};
 };
 

@@ -125,6 +125,8 @@ private:
         void operator()(const ExprStatement* s) const;
         void operator()(const VarDecl* s) const;
         void operator()(const Block* s) const;
+        void operator()(const IfStatement* s) const;
+        void operator()(const WhileStatement* s) const;
     } stmtVisitor{*this};
 };
 

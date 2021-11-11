@@ -2,10 +2,14 @@
 
 #include <fmt/format.h>
 
-#define BIND(var, x)             \
-  auto val = (x);                \
-  if (!val) return std::nullopt; \
-  auto var = *val
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a ## b
+
+#define BIND(var, x)  BIND_IMPL(var, x, CONCAT(__val, __COUNTER__))
+#define BIND_IMPL(var, x, y)       \
+  auto y = (x);                    \
+  if (!y) return std::nullopt;     \
+  auto var = *y
 
 std::optional<StatementIndex> Parser::declaration()
 {
@@ -34,10 +38,29 @@ std::optional<Index<VarDecl>> Parser::varDeclaration()
 
 std::optional<StatementIndex> Parser::statement()
 {
+    if (match(TokenType::IF)) return ifStatement();
     if (match(TokenType::PRINT)) return printStatement();
+    if (match(TokenType::WHILE)) return whileStatement();
     if (match(TokenType::LEFT_BRACE)) return block();
 
     return expressionStatement();
+}
+
+std::optional<Index<IfStatement>> Parser::ifStatement()
+{
+    consume(TokenType::LEFT_PAREN, "Expect '(' after if.");
+    BIND(condition, expression());
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+
+    BIND(thenBranch, statement());
+    std::optional<StatementIndex> elseBranch;
+    if (match(TokenType::ELSE))
+    {
+        BIND(elseStmt, statement());
+        elseBranch = elseStmt;
+    }
+
+    return context.makeIf(condition, thenBranch, elseBranch);
 }
 
 std::optional<Index<PrintStatement>> Parser::printStatement()
@@ -46,6 +69,17 @@ std::optional<Index<PrintStatement>> Parser::printStatement()
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
 
     return context.makePrint(value);
+}
+
+std::optional<Index<WhileStatement>> Parser::whileStatement()
+{
+    consume(TokenType::LEFT_PAREN, "Expect '(' after while.");
+    BIND(condition, expression());
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after while condition.");
+
+    BIND(body, statement());
+
+    return context.makeWhile(condition, body);
 }
 
 std::optional<Index<Block>> Parser::block()
