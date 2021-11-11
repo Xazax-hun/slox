@@ -116,8 +116,6 @@ struct VarDecl
 class ASTContext
 {
 public:
-    ASTContext(std::vector<Token> tokens) : tokens(std::move(tokens)) {}
-
     // Expression factories.
     Index<Binary> makeBinary(ExpressionIndex left, Index<Token> t, ExpressionIndex right)
     {
@@ -179,6 +177,16 @@ public:
     const Token& getToken(Index<Token> idx) const
     {
         return tokens[idx.id];
+    }
+
+    void addTokens(std::vector<Token>&& newTokens)
+    {
+        // Get rid if the now incorrect end of file token.
+        if (!tokens.empty())
+            tokens.pop_back();
+
+        tokens.insert(tokens.end(), std::make_move_iterator(newTokens.begin()),
+                      std::make_move_iterator(newTokens.end()));
     }
 
 private:

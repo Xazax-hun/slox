@@ -11,9 +11,11 @@
 class Parser
 {
 public:
-    Parser(std::vector<Token> tokens) : context(std::move(tokens)) {}
-
-    std::optional<StatementIndex> parse() { return declaration(); }
+    std::optional<StatementIndex> parse(std::vector<Token> tokens)
+    {
+        context.addTokens(std::move(tokens));
+        return declaration();
+    }
 
     const ASTContext& getContext() const { return context; }
 

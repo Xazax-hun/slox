@@ -29,6 +29,7 @@ bool runPrompt(bool dumpAst)
     std::string line;
     // TODO: more sophisticated solution for persisting env across lines.
     Environment env;
+    Parser parser;
     while (true)
     {
         std::cout << ::prompt;
@@ -39,8 +40,7 @@ bool runPrompt(bool dumpAst)
         if (!maybeTokens)
             return false;
 
-        Parser parser(std::move(*maybeTokens));
-        auto maybeAst = parser.parse();
+        auto maybeAst = parser.parse(std::move(*maybeTokens));
         if (!maybeAst)
             return false;
 
@@ -66,8 +66,8 @@ bool runSource(std::string sourceText, bool dumpAst)
     if (!maybeTokens)
         return false;
 
-    Parser parser(std::move(*maybeTokens));
-    auto maybeAst = parser.parse();
+    Parser parser;
+    auto maybeAst = parser.parse(std::move(*maybeTokens));
     if (!maybeAst)
         return false;
 
