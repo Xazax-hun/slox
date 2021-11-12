@@ -49,34 +49,23 @@ struct Binary
 {
     Index<Token> op;
     ExpressionIndex left, right;
-
-    // TODO: remove once compiler is standard conforming.
-    Binary(Index<Token> op, ExpressionIndex left, ExpressionIndex right)
-        : op(op), left(left), right(right) {}
 };
 
 struct Assign
 {
     Index<Token> name;
     ExpressionIndex value;
-
-    Assign(Index<Token> name, ExpressionIndex value)
-        : name(name), value(value) {}
 };
 
 struct Unary
 {
     Index<Token> op;
     ExpressionIndex subExpr;
-
-    Unary(Index<Token> op, ExpressionIndex subExpr) : op(op), subExpr(subExpr) {}
 };
 
 struct Literal
 {
     Index<Token> value;
-
-    Literal (Index<Token> value) : value(value) {}
 };
 
 struct Grouping
@@ -84,45 +73,32 @@ struct Grouping
     Index<Token> begin;
     Index<Token> end;
     ExpressionIndex subExpr;
-
-    Grouping(Index<Token> begin, Index<Token> end, ExpressionIndex subExpr)
-        : begin(begin), end(end), subExpr(subExpr) {}
 };
 
 struct DeclRef
 {
     Index<Token> name;
-
-    DeclRef(Index<Token> name) : name(name) {}
 };
 
 struct ExprStatement
 {
     ExpressionIndex subExpr;
-
-    ExprStatement(ExpressionIndex subExpr) : subExpr(subExpr) {}
 };
 
 struct PrintStatement
 {
     ExpressionIndex subExpr;
-
-    PrintStatement(ExpressionIndex subExpr) : subExpr(subExpr) {}
 };
 
 struct VarDecl
 {
     Index<Token> name;
     std::optional<ExpressionIndex> init;
-
-    VarDecl(Index<Token> name, std::optional<ExpressionIndex> init) : name(name), init(init) {}
 };
 
 struct Block
 {
     std::vector<StatementIndex> statements;
-
-    Block(std::vector<StatementIndex> statements) : statements(std::move(statements)) {}
 };
 
 struct IfStatement
@@ -130,18 +106,12 @@ struct IfStatement
     ExpressionIndex condition;
     StatementIndex thenBranch;
     std::optional<StatementIndex> elseBranch;
-
-    IfStatement(ExpressionIndex condition, StatementIndex thenBranch, std::optional<StatementIndex> elseBranch)
-        : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
 };
 
 struct WhileStatement
 {
     ExpressionIndex condition;
     StatementIndex body;
-
-    WhileStatement(ExpressionIndex condition, StatementIndex body)
-        : condition(condition), body(body) {}
 };
 
 class ASTContext
