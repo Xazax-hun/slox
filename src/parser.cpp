@@ -284,7 +284,25 @@ std::optional<ExpressionIndex> Parser::unary()
         return context.makeUnary(op, subExpr);
     }
 
-    return primary();
+    return call();
+}
+
+std::optional<ExpressionIndex> Parser::call()
+{
+    BIND(expr, primary());
+
+    while (true)
+    {
+        if (match(LEFT_PAREN))
+        {
+            BIND(c, finishCall(previous(), expr));
+            expr = c;
+        }
+        else
+            break;
+    }
+
+    return expr;
 }
 
 std::optional<ExpressionIndex> Parser::primary()
@@ -313,6 +331,30 @@ std::optional<ExpressionIndex> Parser::primary()
 
     error(peek(), "Unexpected token.");
     return std::nullopt;
+}
+
+std::optional<ExpressionIndex> Parser::finishCall(Index<Token> begin, ExpressionIndex callee)
+{
+    std::vector<ExpressionIndex> args;
+
+    if (!check(RIGHT_PAREN))
+    {
+        do
+        {
+            if (args.size() >= 255)
+            {
+                error(peek(), "Can't have more than 255 arguments.");
+                return std::nullopt;
+            }
+
+            BIND(arg, expression());
+            args.push_back(arg);
+        } while (match(COMMA));
+    }
+
+    BIND(end, consume(RIGHT_PAREN, "Expect ')' after arguments."));
+
+    return context.makeCall(callee, begin, std::move(args), end);
 }
 
 void Parser::synchronize()

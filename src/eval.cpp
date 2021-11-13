@@ -204,6 +204,12 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
     throw RuntimeError{r->name, "Undefined variable."};
 }
 
+RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Call* c) const
+{
+
+    throw RuntimeError{c->open, "Calls not supported yet."};
+}
+
 void Interpreter::StmtEvalVisitor::operator()(const PrintStatement* s) const
 {
     RuntimeValue value = i.eval(s->subExpr);

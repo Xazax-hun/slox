@@ -25,6 +25,27 @@ struct fmt::formatter<Nil>
 };
 inline bool operator==(Nil, Nil) { return true; }
 
+struct Callable
+{
+
+};
+
+template <>
+struct fmt::formatter<Callable>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const Callable&, FormatContext& ctx) -> decltype(ctx.out())
+    {
+        return format_to(ctx.out(), "<Callable>");
+    }
+};
+inline bool operator==(const Callable&, const Callable&) { return false; }
+
 struct RuntimeError
 {
     Index<Token> where;
@@ -32,7 +53,7 @@ struct RuntimeError
 };
 
 // TODO: Add representation of objects.
-using RuntimeValue = std::variant<Nil, std::string, double, bool>;
+using RuntimeValue = std::variant<Nil, Callable, std::string, double, bool>;
 std::string print(const RuntimeValue&);
 
 class Environment
@@ -109,6 +130,7 @@ private:
         RuntimeValue operator()(const Literal* l) const;
         RuntimeValue operator()(const Grouping* l) const;
         RuntimeValue operator()(const DeclRef* r) const;
+        RuntimeValue operator()(const Call* c) const;
     } exprVisitor{*this};
 
     struct StmtEvalVisitor

@@ -61,6 +61,22 @@ std::string ASTPrinter::ExprPrintVisitor::operator()(const DeclRef* r) const
     return ::print(r->name, printer.c);
 }
 
+std::string ASTPrinter::ExprPrintVisitor::operator()(const Call* c) const
+{
+    std::stringstream ss;
+    ss << "(call";
+
+    ss << " " << printer.print(c->callee);
+
+    for (auto arg : c->args)
+    {
+        ss << " " << printer.print(arg);
+    }
+
+    ss << ")";
+    return std::move(ss).str();
+}
+
 std::string ASTPrinter::StmtPrintVisitor::operator()(const PrintStatement* s) const
 {
     return parenthesize(std::string_view("print"), printer.print(s->subExpr));

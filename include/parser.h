@@ -40,7 +40,10 @@ private:
     std::optional<ExpressionIndex> term();
     std::optional<ExpressionIndex> factor();
     std::optional<ExpressionIndex> unary();
+    std::optional<ExpressionIndex> call();
     std::optional<ExpressionIndex> primary();
+
+    std::optional<ExpressionIndex> finishCall(Index<Token> begin, ExpressionIndex callee);
 
     // Error recovery.
     void synchronize();

@@ -14,6 +14,7 @@ struct Unary;
 struct Literal;
 struct Grouping;
 struct DeclRef;
+struct Call;
 
 // Statements.
 struct ExprStatement;
@@ -32,14 +33,16 @@ struct Index
 
 using Expression = std::variant<const Binary*, const Assign*,
                                 const Unary*, const Literal*,
-                                const Grouping*, const DeclRef*>;
+                                const Grouping*, const DeclRef*,
+                                const Call*>;
 using Statement = std::variant<const ExprStatement*, const PrintStatement*,
                                const VarDecl*, const Block*,
                                const IfStatement*, const WhileStatement*>;
 
 using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
                                      Index<Unary>, Index<Literal>,
-                                     Index<Grouping>, Index<DeclRef>>;
+                                     Index<Grouping>, Index<DeclRef>,
+                                     Index<Call>>;
 using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
                                     Index<VarDecl>, Index<Block>,
                                     Index<IfStatement>, Index<WhileStatement>>;
@@ -77,6 +80,14 @@ struct Grouping
 struct DeclRef
 {
     Index<Token> name;
+};
+
+struct Call
+{
+    ExpressionIndex callee;
+    Index<Token> open;
+    std::vector<ExpressionIndex> args;
+    Index<Token> close;
 };
 
 struct ExprStatement
@@ -147,6 +158,12 @@ public:
         return insert_node(declRefs, name);
     }
 
+    Index<Call> makeCall(ExpressionIndex callee, Index<Token> begin,
+                         std::vector<ExpressionIndex> args, Index<Token> end)
+    {
+        return insert_node(calls, callee, begin, std::move(args), end);
+    }
+
     // Statement factories.
     Index<PrintStatement> makePrint(ExpressionIndex subExpr)
     {
@@ -212,6 +229,7 @@ private:
     std::vector<Literal>  literals;
     std::vector<Grouping> groupings;
     std::vector<DeclRef>  declRefs;
+    std::vector<Call>     calls;
 
     // Statements.
     std::vector<PrintStatement>   prints;
@@ -231,7 +249,8 @@ private:
         auto operator()(Index<Unary> index) const    -> Expression { return &ctx.unaries[index.id]; }
         auto operator()(Index<Literal> index) const  -> Expression { return &ctx.literals[index.id]; }
         auto operator()(Index<Grouping> index) const -> Expression { return &ctx.groupings[index.id]; }
-        auto operator()(Index<DeclRef> index) const ->  Expression { return &ctx.declRefs[index.id]; }
+        auto operator()(Index<DeclRef> index) const  -> Expression { return &ctx.declRefs[index.id]; }
+        auto operator()(Index<Call> index) const     -> Expression { return &ctx.calls[index.id]; }
     } exprNodeGetter{*this};
 
     struct StatementExprNode
@@ -272,6 +291,7 @@ private:
         std::string operator()(const Literal* l) const;
         std::string operator()(const Grouping* l) const;
         std::string operator()(const DeclRef* l) const;
+        std::string operator()(const Call* c) const;
     } exprVisitor{*this};
 
     struct StmtPrintVisitor
