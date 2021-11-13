@@ -5,7 +5,7 @@ An implementation of Lox (from crafting interpreters) using sum types
 
 ```
 pip3 install --user meson
-sudo apt-get install libgtest-dev libfmt-dev
+sudo apt-get install libgtest-dev libfmt-dev libreadline-dev
 ```
 
 # Build

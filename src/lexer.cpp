@@ -192,8 +192,6 @@ char Lexer::peekNext() const
     return source[current + 1];
 }
 
-
-// TODO: use constexpr std::string_view tokenTypeToSourceName(TokenType);
 const std::unordered_map<std::string_view, TokenType> Lexer::keywords = {
     {tokenTypeToSourceName(AND),    AND},
     {tokenTypeToSourceName(CLASS),  CLASS},

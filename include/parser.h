@@ -43,8 +43,8 @@ private:
     void synchronize();
 
     // Utilities.
-    Index<Token> peek() const { return current; }
-    Index<Token> previous() const { return current - 1; }
+    Index<Token> peek() const { return {current}; }
+    Index<Token> previous() const { return {current - 1}; }
     bool isAtEnd() const
     {
         return context.getToken(peek()).type == TokenType::END_OF_FILE;

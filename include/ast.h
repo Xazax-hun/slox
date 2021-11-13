@@ -28,7 +28,6 @@ struct Index
 {
     using type = T;
     unsigned id; 
-    constexpr Index(unsigned id) : id(id) {}
 };
 
 using Expression = std::variant<const Binary*, const Assign*,
@@ -251,7 +250,7 @@ private:
     Index<typename NodeContainer::value_type> insert_node(NodeContainer& c, Args&&... args)
     {
         c.emplace_back(std::forward<Args>(args)...);
-        return c.size() - 1;
+        return {static_cast<unsigned>(c.size()) - 1};
     }
 };
 
