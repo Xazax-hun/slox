@@ -71,9 +71,21 @@ void Interpreter::eval(StatementIndex stmt)
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Literal* l) const
 {
+    const auto& token = i.ctxt.getToken(l->value);
+
+    switch(token.type)
+    {
+        case TRUE:
+            return true;
+        case FALSE:
+            return false;
+        default:
+            break;
+    }
+
     return std::visit([](auto&& arg) -> RuntimeValue {
         return arg;
-    }, i.ctxt.getToken(l->value).value);
+    }, token.value);
 }
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Unary* u) const
@@ -99,9 +111,25 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Unary* u) const
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 {
     RuntimeValue left = i.eval(b->left);
+
+    // Short circut for logical operators.
+    auto type = i.ctxt.getToken(b->op).type;
+    if (type == OR)
+    {
+        if (isTruthy(left))
+            return left;
+        return i.eval(b->right);
+    }
+    else if (type == AND)
+    {
+        if (!isTruthy(left))
+            return left;
+        return i.eval(b->right);
+    }
+
     RuntimeValue right = i.eval(b->right);
 
-    switch (i.ctxt.getToken(b->op).type)
+    switch (type)
     {
         // Arithmetic.
         case SLASH:

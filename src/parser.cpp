@@ -116,7 +116,7 @@ std::optional<ExpressionIndex> Parser::expression()
 
 std::optional<ExpressionIndex> Parser::assignment()
 {
-    BIND(expr, equality());
+    BIND(expr, or_());
 
     if (match(EQUAL))
     {
@@ -131,6 +131,34 @@ std::optional<ExpressionIndex> Parser::assignment()
         }
 
         error(equals, "Invalid assignment target");
+    }
+
+    return expr;
+}
+
+std::optional<ExpressionIndex> Parser::or_()
+{
+    BIND(expr, and_());
+
+    while(match(OR))
+    {
+        Index<Token> op = previous();
+        BIND(right, and_());
+        expr = context.makeBinary(expr, op, right);
+    }
+
+    return expr;
+}
+
+std::optional<ExpressionIndex> Parser::and_()
+{
+    BIND(expr, equality());
+
+    while(match(AND))
+    {
+        Index<Token> op = previous();
+        BIND(right, equality());
+        expr = context.makeBinary(expr, op, right);
     }
 
     return expr;

@@ -32,6 +32,8 @@ private:
     // Expressions.
     std::optional<ExpressionIndex> expression();
     std::optional<ExpressionIndex> assignment();
+    std::optional<ExpressionIndex> or_();
+    std::optional<ExpressionIndex> and_();
     std::optional<ExpressionIndex> equality();
     std::optional<ExpressionIndex> comparison();
     std::optional<ExpressionIndex> term();
