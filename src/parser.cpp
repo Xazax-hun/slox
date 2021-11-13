@@ -18,10 +18,40 @@ using enum TokenType;
 std::optional<StatementIndex> Parser::declaration()
 {
     // TODO: synchronize.
+    if (match(FUN))
+        return funDeclaration();
     if (match(VAR))
         return varDeclaration();
 
     return statement();
+}
+
+// TODO: support methods.
+std::optional<Index<FunDecl>> Parser::funDeclaration()
+{
+    BIND(name, consume(IDENTIFIER, "Expect function name."));
+    consume(LEFT_PAREN, "Expect '(' after function name.");
+    std::vector<Index<Token>> params;
+    if (!check(RIGHT_PAREN))
+    {
+        do
+        {
+            BIND(param, consume(IDENTIFIER, "Expect parameter name."));
+            params.push_back(param);
+        } while (match(COMMA));
+
+        if (params.size() >= 255)
+        {
+            error(peek(), "Can't have more than 255 parameters.");
+            return std::nullopt;
+        }
+    }
+    consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+    consume(LEFT_BRACE, "Expect '{' before function body.");
+    BIND(body, block());
+
+    return context.makeFunDecl(name, params, body);
 }
 
 std::optional<Index<VarDecl>> Parser::varDeclaration()

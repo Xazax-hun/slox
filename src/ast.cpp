@@ -93,6 +93,24 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const VarDecl* s) const
     return parenthesize(std::string_view("var"), ::print(s->name, printer.c), init);
 }
 
+std::string ASTPrinter::StmtPrintVisitor::operator()(const FunDecl* s) const
+{
+    std::stringstream ss;
+    ss << "(fun";
+
+    ss << " " << ::print(s->name, printer.c);
+
+    for (auto par : s->params)
+    {
+        ss << " " << ::print(par, printer.c);
+    }
+
+    ss << " " << printer.print(s->body);
+
+    ss << ")";
+    return std::move(ss).str();
+}
+
 std::string ASTPrinter::StmtPrintVisitor::operator()(const Block* s) const
 {
     std::stringstream ss;

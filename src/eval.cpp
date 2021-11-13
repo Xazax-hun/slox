@@ -264,6 +264,36 @@ void Interpreter::StmtEvalVisitor::operator()(const VarDecl* s) const
     i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
 }
 
+void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
+{
+    Callable callable{
+        static_cast<unsigned>(s->params.size()),
+        [&params = s->params, body = s->body](Interpreter& interp,
+                                              std::vector<RuntimeValue> args) -> RuntimeValue
+        {
+            // TODO: RAII
+            auto previous = interp.currentEnv;
+            Environment newEnv(interp.currentEnv);
+            interp.currentEnv = &newEnv;
+
+            // Bind arguments.
+            for(unsigned i = 0; i < params.size(); ++i)
+            {
+                newEnv.define(std::get<std::string>(interp.ctxt.getToken(params[i]).value), args[i]);
+            }
+
+            interp.eval(body);
+
+            interp.currentEnv = previous;
+
+            // TODO: return values.
+            return Nil{};
+        }
+    };
+
+    i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), callable);
+}
+
 void Interpreter::StmtEvalVisitor::operator()(const Block* s) const
 {
     // TODO: RAII

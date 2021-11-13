@@ -21,6 +21,7 @@ public:
 private:
     // Statements.
     std::optional<StatementIndex> declaration();
+    std::optional<Index<FunDecl>> funDeclaration();
     std::optional<Index<VarDecl>> varDeclaration();
     std::optional<StatementIndex> statement();
     std::optional<Index<Block>> forStatement();
