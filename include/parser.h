@@ -6,7 +6,6 @@
 
 #include "include/lexer.h"
 #include "include/ast.h"
-#include "include/utils.h"
 
 class Parser
 {

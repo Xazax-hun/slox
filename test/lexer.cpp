@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "include/lexer.h"
 #include <algorithm>
-#include <iostream>
 
 namespace
 {

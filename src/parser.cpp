@@ -1,5 +1,7 @@
 #include "include/parser.h"
 
+#include "include/utils.h"
+
 #include <fmt/format.h>
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

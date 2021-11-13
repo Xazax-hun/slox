@@ -1,6 +1,5 @@
 #include "include/ast.h"
 
-#include <ostream>
 #include <utility>
 #include <sstream>
 

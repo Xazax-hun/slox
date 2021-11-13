@@ -2,8 +2,7 @@
 #include <include/utils.h>
 #include <fmt/format.h>
 
-#include <ctype.h>
-#include <sstream>
+#include <cstdlib>
 
 using enum TokenType;
 
@@ -151,10 +150,7 @@ std::optional<Token> Lexer::lexNumber()
             advance();
     }
 
-    std::stringstream convert;
-    convert << source.substr(start, current - start);
-    double value;
-    convert >> value;
+    double value = strtod(source.substr(start, current - start).c_str(), nullptr);
 
     return Token(NUMBER, line, value);
 }

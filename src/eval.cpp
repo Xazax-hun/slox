@@ -1,8 +1,8 @@
 #include <include/eval.h>
 
-#include <include/utils.h>
+#include <fmt/format.h>
 
-#include <iostream>
+#include <include/utils.h>
 
 using enum TokenType;
 
@@ -179,7 +179,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 void Interpreter::StmtEvalVisitor::operator()(const PrintStatement* s) const
 {
     RuntimeValue value = i.eval(s->subExpr);
-    std::cout << print(value) << "\n";
+    fmt::print("{}\n", print(value));
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const ExprStatement* s) const

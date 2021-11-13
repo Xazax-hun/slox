@@ -2,10 +2,10 @@
 
 #include <fstream>
 #include <sstream>
-#include <iostream>
 
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <fmt/format.h>
 
 #include <include/lexer.h>
 #include <include/ast.h>
@@ -56,7 +56,7 @@ bool runPrompt(bool dumpAst)
         if (dumpAst)
         {
             ASTPrinter printer(parser.getContext());
-            std::cout << printer.print(*maybeAst) << std::endl;
+            fmt::print("{}\n",printer.print(*maybeAst));
         }
 
         Interpreter interpreter(parser.getContext(), env);
@@ -83,7 +83,7 @@ bool runSource(std::string sourceText, bool dumpAst)
     if (dumpAst)
     {
         ASTPrinter printer(parser.getContext());
-        std::cout << printer.print(*maybeAst) << std::endl;
+        fmt::print("{}\n",printer.print(*maybeAst));
     }
 
     Interpreter interpreter(parser.getContext());
