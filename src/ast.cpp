@@ -111,6 +111,12 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const FunDecl* s) const
     return std::move(ss).str();
 }
 
+std::string ASTPrinter::StmtPrintVisitor::operator()(const Return* s) const
+{
+    std::string value = s->value ? printer.print(*s->value) : "<NULL>";
+    return parenthesize(std::string_view("return"), value);
+}
+
 std::string ASTPrinter::StmtPrintVisitor::operator()(const Block* s) const
 {
     std::stringstream ss;

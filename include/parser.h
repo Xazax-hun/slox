@@ -27,6 +27,7 @@ private:
     std::optional<Index<Block>> forStatement();
     std::optional<Index<IfStatement>> ifStatement();
     std::optional<Index<PrintStatement>> printStatement();
+    std::optional<Index<Return>> returnStatement();
     std::optional<Index<WhileStatement>> whileStatement();
     std::optional<Index<Block>> block();
     std::optional<Index<ExprStatement>> expressionStatement();

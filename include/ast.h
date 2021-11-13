@@ -24,6 +24,7 @@ struct FunDecl;
 struct Block;
 struct IfStatement;
 struct WhileStatement;
+struct Return;
 
 template<typename T>
 struct Index
@@ -39,7 +40,7 @@ using Expression = std::variant<const Binary*, const Assign*,
 using Statement = std::variant<const ExprStatement*, const PrintStatement*,
                                const VarDecl*, const Block*,
                                const IfStatement*, const WhileStatement*,
-                               const FunDecl*>;
+                               const FunDecl*, const Return*>;
 
 using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
                                      Index<Unary>, Index<Literal>,
@@ -48,7 +49,7 @@ using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
 using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
                                     Index<VarDecl>, Index<Block>,
                                     Index<IfStatement>, Index<WhileStatement>,
-                                    Index<FunDecl>>;
+                                    Index<FunDecl>, Index<Return>>;
 
 struct Binary
 {
@@ -114,6 +115,12 @@ struct FunDecl
     Index<Token> name;
     std::vector<Index<Token>> params;
     Index<Block> body;
+};
+
+struct Return
+{
+    Index<Token> keyword;
+    std::optional<ExpressionIndex> value;
 };
 
 struct Block
@@ -195,6 +202,11 @@ public:
         return insert_node(funDecls, name, std::move(params), body);
     }
 
+    Index<Return> makeReturn(Index<Token> keyword, std::optional<ExpressionIndex> value)
+    {
+        return insert_node(returns, keyword, value);
+    }
+
     Index<Block> makeBlock(std::vector<StatementIndex> statements)
     {
         return insert_node(blocks, std::move(statements));
@@ -251,6 +263,7 @@ private:
     std::vector<ExprStatement>    exprStmts;
     std::vector<VarDecl>          varDecls;
     std::vector<FunDecl>          funDecls;
+    std::vector<Return>           returns;
     std::vector<Block>            blocks;
     std::vector<IfStatement>      ifs;
     std::vector<WhileStatement>   whiles;
@@ -276,6 +289,7 @@ private:
         auto operator()(Index<ExprStatement> index) const    -> Statement { return &ctx.exprStmts[index.id]; }
         auto operator()(Index<VarDecl> index) const          -> Statement { return &ctx.varDecls[index.id]; }
         auto operator()(Index<FunDecl> index) const          -> Statement { return &ctx.funDecls[index.id]; }
+        auto operator()(Index<Return> index) const           -> Statement { return &ctx.returns[index.id]; }
         auto operator()(Index<Block> index) const            -> Statement { return &ctx.blocks[index.id]; }
         auto operator()(Index<IfStatement> index) const      -> Statement { return &ctx.ifs[index.id]; }
         auto operator()(Index<WhileStatement> index) const   -> Statement { return &ctx.whiles[index.id]; }
@@ -318,6 +332,7 @@ private:
         std::string operator()(const ExprStatement* s) const;
         std::string operator()(const VarDecl* s) const;
         std::string operator()(const FunDecl* s) const;
+        std::string operator()(const Return* s) const;
         std::string operator()(const Block* s) const;
         std::string operator()(const IfStatement* s) const;
         std::string operator()(const WhileStatement* s) const;

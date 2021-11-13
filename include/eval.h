@@ -31,21 +31,27 @@ inline bool operator==(Nil, Nil) { return true; }
 
 struct Callable;
 
+// TODO: Add representation of objects.
+using RuntimeValue = std::variant<Nil, Callable, std::string, double, bool>;
+
 struct RuntimeError
 {
     Index<Token> where;
     std::string message;
 };
 
-// TODO: Add representation of objects.
-using RuntimeValue = std::variant<Nil, Callable, std::string, double, bool>;
-
+// Using throw to return. (TODO: revise.)
 struct Callable
 {
     unsigned arity;
     std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>)> impl;
 
     RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args);
+};
+
+struct ReturnValue
+{
+    std::optional<RuntimeValue> value;
 };
 
 template <>
@@ -149,6 +155,7 @@ private:
         void operator()(const ExprStatement* s) const;
         void operator()(const VarDecl* s) const;
         void operator()(const FunDecl* s) const;
+        void operator()(const Return* s) const;
         void operator()(const Block* s) const;
         void operator()(const IfStatement* s) const;
         void operator()(const WhileStatement* s) const;

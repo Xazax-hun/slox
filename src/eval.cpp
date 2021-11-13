@@ -282,16 +282,30 @@ void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
                 newEnv.define(std::get<std::string>(interp.ctxt.getToken(params[i]).value), args[i]);
             }
 
-            interp.eval(body);
+            try
+            {
+                interp.eval(body);
+            }
+            catch (const ReturnValue& retVal)
+            {
+                interp.currentEnv = previous;
+                return retVal.value ? *retVal.value : Nil{};
+            }
 
             interp.currentEnv = previous;
-
-            // TODO: return values.
             return Nil{};
         }
     };
 
     i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), callable);
+}
+
+void Interpreter::StmtEvalVisitor::operator()(const Return* s) const
+{
+    if (s->value)
+        throw ReturnValue{i.eval(*s->value)};
+
+    throw ReturnValue{std::nullopt};
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const Block* s) const

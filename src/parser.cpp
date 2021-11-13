@@ -75,6 +75,7 @@ std::optional<StatementIndex> Parser::statement()
     if (match(FOR)) return forStatement();
     if (match(IF)) return ifStatement();
     if (match(PRINT)) return printStatement();
+    if (match(RET)) return returnStatement();
     if (match(WHILE)) return whileStatement();
     if (match(LEFT_BRACE)) return block();
 
@@ -158,6 +159,20 @@ std::optional<Index<PrintStatement>> Parser::printStatement()
     consume(SEMICOLON, "Expect ';' after value.");
 
     return context.makePrint(value);
+}
+
+std::optional<Index<Return>> Parser::returnStatement()
+{
+    Index<Token> keyword = previous();
+    std::optional<ExpressionIndex> value;
+    if (!check(SEMICOLON))
+    {
+        BIND(arg, expression());
+        value = arg;
+    }
+
+    consume(SEMICOLON, "Expect ';' after return value.");
+    return context.makeReturn(keyword, value);
 }
 
 std::optional<Index<WhileStatement>> Parser::whileStatement()
