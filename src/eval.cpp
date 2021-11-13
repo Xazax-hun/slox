@@ -1,6 +1,7 @@
 #include <include/eval.h>
 
 #include <fmt/format.h>
+#include <chrono>
 
 #include <include/utils.h>
 
@@ -11,6 +12,21 @@ std::string print(const RuntimeValue& val)
     return std::visit([](auto&& arg) {
         return fmt::format("{}", arg);
     }, val);
+}
+
+RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue> args)
+{
+    return impl(interp, args);
+}
+
+Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
+    : ctxt{ctxt}, globalEnv(std::move(env)), currentEnv(&globalEnv)
+{
+    // Built in functions.
+    globalEnv.define("clock", Callable{0, [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
+    {
+        return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }});
 }
 
 bool Interpreter::evaluate(StatementIndex stmt)
@@ -206,8 +222,24 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Call* c) const
 {
+    RuntimeValue callee = i.eval(c->callee);
 
-    throw RuntimeError{c->open, "Calls not supported yet."};
+    if (Callable* callable = get_if<Callable>(&callee))
+    {
+        if (callable->arity != c->args.size())
+            throw RuntimeError{c->open,
+                fmt::format("Expected {} arguments but got {}.", callable->arity, c->args.size())};
+
+        std::vector<RuntimeValue> argValues;
+        for(auto arg : c->args)
+        {
+            argValues.push_back(i.eval(arg));
+        }
+
+        return (*callable)(i, std::move(argValues));
+    }
+
+    throw RuntimeError{c->open, "Can only call functions and classes."};
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const PrintStatement* s) const

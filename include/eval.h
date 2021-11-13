@@ -2,10 +2,14 @@
 #define EVAL_H
 
 #include <variant>
+#include <vector>
+#include <functional>
 #include <unordered_map>
 
 #include <include/ast.h>
 #include <fmt/format.h>
+
+struct Interpreter;
 
 // Representing runtime values.
 struct Nil{};
@@ -25,9 +29,23 @@ struct fmt::formatter<Nil>
 };
 inline bool operator==(Nil, Nil) { return true; }
 
+struct Callable;
+
+struct RuntimeError
+{
+    Index<Token> where;
+    std::string message;
+};
+
+// TODO: Add representation of objects.
+using RuntimeValue = std::variant<Nil, Callable, std::string, double, bool>;
+
 struct Callable
 {
+    unsigned arity;
+    std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>)> impl;
 
+    RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args);
 };
 
 template <>
@@ -46,14 +64,6 @@ struct fmt::formatter<Callable>
 };
 inline bool operator==(const Callable&, const Callable&) { return false; }
 
-struct RuntimeError
-{
-    Index<Token> where;
-    std::string message;
-};
-
-// TODO: Add representation of objects.
-using RuntimeValue = std::variant<Nil, Callable, std::string, double, bool>;
 std::string print(const RuntimeValue&);
 
 class Environment
@@ -102,8 +112,7 @@ private:
 class Interpreter
 {
 public:
-    Interpreter(const ASTContext& ctxt, Environment env = {})
-        : ctxt{ctxt}, globalEnv(std::move(env)), currentEnv(&globalEnv) {}
+    Interpreter(const ASTContext& ctxt, Environment env = {});
 
     std::optional<RuntimeValue> evaluate(ExpressionIndex expr);
     bool evaluate(StatementIndex stmt);
