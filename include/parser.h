@@ -23,6 +23,7 @@ private:
     std::optional<StatementIndex> declaration();
     std::optional<Index<VarDecl>> varDeclaration();
     std::optional<StatementIndex> statement();
+    std::optional<Index<Block>> forStatement();
     std::optional<Index<IfStatement>> ifStatement();
     std::optional<Index<PrintStatement>> printStatement();
     std::optional<Index<WhileStatement>> whileStatement();

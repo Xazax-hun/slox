@@ -42,12 +42,67 @@ std::optional<Index<VarDecl>> Parser::varDeclaration()
 
 std::optional<StatementIndex> Parser::statement()
 {
+    if (match(FOR)) return forStatement();
     if (match(IF)) return ifStatement();
     if (match(PRINT)) return printStatement();
     if (match(WHILE)) return whileStatement();
     if (match(LEFT_BRACE)) return block();
 
     return expressionStatement();
+}
+
+// Desugaring into while.
+std::optional<Index<Block>> Parser::forStatement()
+{
+    consume(LEFT_PAREN, "Expect '(' after for.");
+
+    std::optional<StatementIndex> init;
+    if (!match(SEMICOLON))
+    {
+        // Semi is consumed/checked by init statement parsing.
+        if (match(VAR))
+        {
+            BIND(vardecl, varDeclaration());
+            init = vardecl;
+        }
+        else
+        {
+            BIND(exprStmt, expressionStatement());
+            init = exprStmt;
+        }
+    }
+
+    std::optional<ExpressionIndex> cond;
+    if (!check(SEMICOLON))
+    {
+        BIND(c, expression());
+        cond = c;
+    }
+    else
+    {
+        // TODO: make it optional! 
+        error(peek(), "Loop condition is not optional.");
+    }
+    consume(SEMICOLON, "Expect ';' after loop condition.");
+
+
+    std::optional<ExpressionIndex> incr;
+    if (!check(RIGHT_PAREN))
+    {
+        BIND(i, expression());
+        incr = i;
+    }
+    consume(RIGHT_PAREN, "Expect ')' after for caluses.");
+
+    BIND(body, statement());
+
+    if (incr)
+        body = context.makeBlock({body, context.makeExprStmt(*incr)});
+
+    // TODO: create a true condition if it is omitted.
+    body = context.makeWhile(*cond, body);
+
+    return context.makeBlock({*init, body});
 }
 
 std::optional<Index<IfStatement>> Parser::ifStatement()
