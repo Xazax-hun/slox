@@ -26,7 +26,7 @@ enum class TokenType : unsigned char
 
     // Keywords.
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-    PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+    PRINT, RET, SUPER, THIS, TRUE, VAR, WHILE,
 
     END_OF_FILE
 };
@@ -68,7 +68,7 @@ constexpr std::string_view tokenTypeToSourceName(TokenType type)
         case TokenType::NIL: return "nil";
         case TokenType::OR: return "or";
         case TokenType::PRINT: return "print";
-        case TokenType::RETURN: return "return";
+        case TokenType::RET: return "return";
         case TokenType::SUPER: return "super";
         case TokenType::THIS: return "this";
         case TokenType::TRUE: return "true";

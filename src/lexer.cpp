@@ -5,16 +5,18 @@
 #include <ctype.h>
 #include <sstream>
 
+using enum TokenType;
+
 std::string print(const Token& t)
 {
     switch (t.type)
     {
-    case TokenType::IDENTIFIER:
+    case IDENTIFIER:
         return std::get<std::string>(t.value);
 
-    case TokenType::STRING:
+    case STRING:
         return "\"" + std::get<std::string>(t.value) + "\"";
-    case TokenType::NUMBER:
+    case NUMBER:
         return std::to_string(std::get<double>(t.value));
     
     default:
@@ -33,7 +35,7 @@ std::optional<std::vector<Token>> Lexer::lexAll()
             return std::nullopt;
     }
 
-    result.emplace_back(TokenType::END_OF_FILE, line);
+    result.emplace_back(END_OF_FILE, line);
     return result;
 }
 
@@ -46,30 +48,30 @@ std::optional<Token> Lexer::lex()
         switch (c)
         {
         //  Unambiguous single characters tokens.
-        case '(': return Token(TokenType::LEFT_PAREN, line);
-        case ')': return Token(TokenType::RIGHT_PAREN, line);
-        case '{': return Token(TokenType::LEFT_BRACE, line);
-        case '}': return Token(TokenType::RIGHT_BRACE, line);
-        case ',': return Token(TokenType::COMMA, line);
-        case '.': return Token(TokenType::DOT, line);
-        case '-': return Token(TokenType::MINUS, line);
-        case '+': return Token(TokenType::PLUS, line);
-        case ';': return Token(TokenType::SEMICOLON, line);
-        case '*': return Token(TokenType::STAR, line);
+        case '(': return Token(LEFT_PAREN, line);
+        case ')': return Token(RIGHT_PAREN, line);
+        case '{': return Token(LEFT_BRACE, line);
+        case '}': return Token(RIGHT_BRACE, line);
+        case ',': return Token(COMMA, line);
+        case '.': return Token(DOT, line);
+        case '-': return Token(MINUS, line);
+        case '+': return Token(PLUS, line);
+        case ';': return Token(SEMICOLON, line);
+        case '*': return Token(STAR, line);
 
         //  Single or double character tokens.
         case '!':
-            return match('=') ? Token(TokenType::BANG_EQUAL, line) : 
-                                Token(TokenType::BANG, line);
+            return match('=') ? Token(BANG_EQUAL, line) : 
+                                Token(BANG, line);
         case '=':
-            return match('=') ? Token(TokenType::EQUAL_EQUAL, line) : 
-                                Token(TokenType::EQUAL, line);
+            return match('=') ? Token(EQUAL_EQUAL, line) : 
+                                Token(EQUAL, line);
         case '<':
-            return match('=') ? Token(TokenType::LESS_EQUAL, line) : 
-                                Token(TokenType::LESS, line);
+            return match('=') ? Token(LESS_EQUAL, line) : 
+                                Token(LESS, line);
         case '>':
-            return match('=') ? Token(TokenType::GREATER_EQUAL, line) : 
-                                Token(TokenType::GREATER, line);
+            return match('=') ? Token(GREATER_EQUAL, line) : 
+                                Token(GREATER, line);
 
         // Longer tokens.
         case '/':
@@ -81,7 +83,7 @@ std::optional<Token> Lexer::lex()
                 break;
             }
             
-            return Token(TokenType::SLASH, line);
+            return Token(SLASH, line);
 
         // Whitespace.
         case '\n':
@@ -131,7 +133,7 @@ std::optional<Token> Lexer::lexString()
     // Skip closing ".
     advance();
     // Trim surrounding quotes.
-    return Token(TokenType::STRING, line, source.substr(start + 1, current - start - 2));
+    return Token(STRING, line, source.substr(start + 1, current - start - 2));
 }
 
 std::optional<Token> Lexer::lexNumber()
@@ -154,7 +156,7 @@ std::optional<Token> Lexer::lexNumber()
     double value;
     convert >> value;
 
-    return Token(TokenType::NUMBER, line, value);
+    return Token(NUMBER, line, value);
 }
 
 std::optional<Token> Lexer::lexIdentifier()
@@ -166,7 +168,7 @@ std::optional<Token> Lexer::lexIdentifier()
     if (auto it = keywords.find(text); it != keywords.end())
         return Token(it->second, line);
 
-    return Token(TokenType::IDENTIFIER, line, text);
+    return Token(IDENTIFIER, line, text);
 }
 
 bool Lexer::match(char expected)
@@ -197,20 +199,20 @@ char Lexer::peekNext() const
 
 // TODO: use constexpr std::string_view tokenTypeToSourceName(TokenType);
 const std::unordered_map<std::string_view, TokenType> Lexer::keywords = {
-    {tokenTypeToSourceName(TokenType::AND),    TokenType::AND},
-    {tokenTypeToSourceName(TokenType::CLASS),  TokenType::CLASS},
-    {tokenTypeToSourceName(TokenType::ELSE),   TokenType::ELSE},
-    {tokenTypeToSourceName(TokenType::FALSE),  TokenType::FALSE},
-    {tokenTypeToSourceName(TokenType::FOR),    TokenType::FOR},
-    {tokenTypeToSourceName(TokenType::FUN),    TokenType::FUN},
-    {tokenTypeToSourceName(TokenType::IF),     TokenType::IF},
-    {tokenTypeToSourceName(TokenType::NIL),    TokenType::NIL},
-    {tokenTypeToSourceName(TokenType::OR),     TokenType::OR},
-    {tokenTypeToSourceName(TokenType::PRINT),  TokenType::PRINT},
-    {tokenTypeToSourceName(TokenType::RETURN), TokenType::RETURN},
-    {tokenTypeToSourceName(TokenType::SUPER),  TokenType::SUPER},
-    {tokenTypeToSourceName(TokenType::THIS),   TokenType::THIS},
-    {tokenTypeToSourceName(TokenType::TRUE),   TokenType::TRUE},
-    {tokenTypeToSourceName(TokenType::VAR),    TokenType::VAR},
-    {tokenTypeToSourceName(TokenType::WHILE),  TokenType::WHILE}
+    {tokenTypeToSourceName(AND),    AND},
+    {tokenTypeToSourceName(CLASS),  CLASS},
+    {tokenTypeToSourceName(ELSE),   ELSE},
+    {tokenTypeToSourceName(FALSE),  FALSE},
+    {tokenTypeToSourceName(FOR),    FOR},
+    {tokenTypeToSourceName(FUN),    FUN},
+    {tokenTypeToSourceName(IF),     IF},
+    {tokenTypeToSourceName(NIL),    NIL},
+    {tokenTypeToSourceName(OR),     OR},
+    {tokenTypeToSourceName(PRINT),  PRINT},
+    {tokenTypeToSourceName(RET),    RET},
+    {tokenTypeToSourceName(SUPER),  SUPER},
+    {tokenTypeToSourceName(THIS),   THIS},
+    {tokenTypeToSourceName(TRUE),   TRUE},
+    {tokenTypeToSourceName(VAR),    VAR},
+    {tokenTypeToSourceName(WHILE),  WHILE}
 };

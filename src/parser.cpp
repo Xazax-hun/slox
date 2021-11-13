@@ -11,10 +11,12 @@
   if (!y) return std::nullopt;     \
   auto var = *y
 
+using enum TokenType;
+
 std::optional<StatementIndex> Parser::declaration()
 {
     // TODO: synchronize.
-    if (match(TokenType::VAR))
+    if (match(VAR))
         return varDeclaration();
 
     return statement();
@@ -22,39 +24,39 @@ std::optional<StatementIndex> Parser::declaration()
 
 std::optional<Index<VarDecl>> Parser::varDeclaration()
 {
-    BIND(name, consume(TokenType::IDENTIFIER, "Expect variable name."));
+    BIND(name, consume(IDENTIFIER, "Expect variable name."));
 
     std::optional<ExpressionIndex> init;
-    if (match(TokenType::EQUAL))
+    if (match(EQUAL))
     {
         init = expression();
         if (!init)
             return std::nullopt;
     }
 
-    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+    consume(SEMICOLON, "Expect ';' after variable declaration.");
     return context.makeVarDecl(name, init);
 }
 
 std::optional<StatementIndex> Parser::statement()
 {
-    if (match(TokenType::IF)) return ifStatement();
-    if (match(TokenType::PRINT)) return printStatement();
-    if (match(TokenType::WHILE)) return whileStatement();
-    if (match(TokenType::LEFT_BRACE)) return block();
+    if (match(IF)) return ifStatement();
+    if (match(PRINT)) return printStatement();
+    if (match(WHILE)) return whileStatement();
+    if (match(LEFT_BRACE)) return block();
 
     return expressionStatement();
 }
 
 std::optional<Index<IfStatement>> Parser::ifStatement()
 {
-    consume(TokenType::LEFT_PAREN, "Expect '(' after if.");
+    consume(LEFT_PAREN, "Expect '(' after if.");
     BIND(condition, expression());
-    consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+    consume(RIGHT_PAREN, "Expect ')' after if condition.");
 
     BIND(thenBranch, statement());
     std::optional<StatementIndex> elseBranch;
-    if (match(TokenType::ELSE))
+    if (match(ELSE))
     {
         BIND(elseStmt, statement());
         elseBranch = elseStmt;
@@ -66,16 +68,16 @@ std::optional<Index<IfStatement>> Parser::ifStatement()
 std::optional<Index<PrintStatement>> Parser::printStatement()
 {
     BIND(value, expression());
-    consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    consume(SEMICOLON, "Expect ';' after value.");
 
     return context.makePrint(value);
 }
 
 std::optional<Index<WhileStatement>> Parser::whileStatement()
 {
-    consume(TokenType::LEFT_PAREN, "Expect '(' after while.");
+    consume(LEFT_PAREN, "Expect '(' after while.");
     BIND(condition, expression());
-    consume(TokenType::RIGHT_PAREN, "Expect ')' after while condition.");
+    consume(RIGHT_PAREN, "Expect ')' after while condition.");
 
     BIND(body, statement());
 
@@ -86,13 +88,13 @@ std::optional<Index<Block>> Parser::block()
 {
     std::vector<StatementIndex> statements;
 
-    while(!check(TokenType::RIGHT_BRACE) && !isAtEnd())
+    while(!check(RIGHT_BRACE) && !isAtEnd())
     {
         BIND(stmt, declaration());
         statements.push_back(stmt);
     }
 
-    consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
+    consume(RIGHT_BRACE, "Expect '}' after block.");
 
     return context.makeBlock(std::move(statements));
 }
@@ -100,7 +102,7 @@ std::optional<Index<Block>> Parser::block()
 std::optional<Index<ExprStatement>> Parser::expressionStatement()
 {
     BIND(value, expression());
-    consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    consume(SEMICOLON, "Expect ';' after value.");
 
     return context.makeExprStmt(value);
 }
@@ -114,7 +116,7 @@ std::optional<ExpressionIndex> Parser::assignment()
 {
     BIND(expr, equality());
 
-    if (match(TokenType::EQUAL))
+    if (match(EQUAL))
     {
         Index<Token> equals = previous();
         BIND(value, assignment());
@@ -136,7 +138,7 @@ std::optional<ExpressionIndex> Parser::equality()
 {
     BIND(expr, comparison());
 
-    while(match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL))
+    while(match(BANG_EQUAL, EQUAL_EQUAL))
     {
         Index<Token> op = previous();
         BIND(right, comparison());
@@ -150,8 +152,7 @@ std::optional<ExpressionIndex> Parser::comparison()
 {
     BIND(expr, term());
 
-    while(match(TokenType::GREATER, TokenType::GREATER_EQUAL,
-                TokenType::LESS, TokenType::LESS_EQUAL))
+    while(match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
     {
         Index<Token> op = previous();
         BIND(right, term());
@@ -165,7 +166,7 @@ std::optional<ExpressionIndex> Parser::term()
 {
     BIND(expr, factor());
 
-    while(match(TokenType::MINUS, TokenType::PLUS))
+    while(match(MINUS, PLUS))
     {
         Index<Token> op = previous();
         BIND(right, factor());
@@ -179,7 +180,7 @@ std::optional<ExpressionIndex> Parser::factor()
 {
     BIND(expr, unary());
 
-    while(match(TokenType::SLASH, TokenType::STAR))
+    while(match(SLASH, STAR))
     {
         Index<Token> op = previous();
         BIND(right, unary());
@@ -191,7 +192,7 @@ std::optional<ExpressionIndex> Parser::factor()
 
 std::optional<ExpressionIndex> Parser::unary()
 {
-    if (match(TokenType::BANG, TokenType::MINUS))
+    if (match(BANG, MINUS))
     {
         Index<Token> op = previous();
         BIND(subExpr, unary());
@@ -203,24 +204,24 @@ std::optional<ExpressionIndex> Parser::unary()
 
 std::optional<ExpressionIndex> Parser::primary()
 {
-    if (match(TokenType::FALSE))
+    if (match(FALSE))
         return context.makeLiteral(previous());
-    if (match(TokenType::TRUE))
+    if (match(TRUE))
         return context.makeLiteral(previous());
-    if (match(TokenType::NIL))
-        return context.makeLiteral(previous());
-
-    if (match(TokenType::STRING, TokenType::NUMBER))
+    if (match(NIL))
         return context.makeLiteral(previous());
 
-    if (match(TokenType::IDENTIFIER))
+    if (match(STRING, NUMBER))
+        return context.makeLiteral(previous());
+
+    if (match(IDENTIFIER))
         return context.makeDeclRef(previous());
 
-    if (match(TokenType::LEFT_PAREN))
+    if (match(LEFT_PAREN))
     {
         Index<Token> begin = previous();
         BIND(expr, expression());
-        consume(TokenType::RIGHT_PAREN, "Expect ')' after expression");
+        consume(RIGHT_PAREN, "Expect ')' after expression");
         Index<Token> end = previous();
         return context.makeGrouping(begin, expr, end);
     }
@@ -235,19 +236,19 @@ void Parser::synchronize()
 
     while(!isAtEnd())
     {
-        if (context.getToken(previous()).type == TokenType::SEMICOLON)
+        if (context.getToken(previous()).type == SEMICOLON)
             return;
 
         switch(context.getToken(peek()).type)
         {
-            case TokenType::CLASS:
-            case TokenType::FUN:
-            case TokenType::VAR:
-            case TokenType::FOR:
-            case TokenType::IF:
-            case TokenType::WHILE:
-            case TokenType::PRINT:
-            case TokenType::RETURN:
+            case CLASS:
+            case FUN:
+            case VAR:
+            case FOR:
+            case IF:
+            case WHILE:
+            case PRINT:
+            case RET:
                 return;
             
             default:
@@ -261,7 +262,7 @@ void Parser::synchronize()
 void Parser::error(Index<Token> tIdx, std::string message)
 {
     const Token& t = context.getToken(tIdx);
-    if (t.type == TokenType::END_OF_FILE)
+    if (t.type == END_OF_FILE)
     {
         report(t.line, " at end", std::move(message));
     }
