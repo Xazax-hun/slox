@@ -33,6 +33,7 @@ bool runPrompt(bool dumpAst)
     // TODO: more sophisticated solution for persisting env across lines.
     Environment env;
     Parser parser;
+    Interpreter interpreter(parser.getContext(), env);
     while (true)
     {
         std::string line;
@@ -59,11 +60,8 @@ bool runPrompt(bool dumpAst)
             fmt::print("{}\n",printer.print(*maybeAst));
         }
 
-        Interpreter interpreter(parser.getContext(), env);
         if (!interpreter.evaluate(*maybeAst))
             return false;
-        
-        env = interpreter.getEnv();
     }
     return true;
 }

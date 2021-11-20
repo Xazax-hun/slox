@@ -20,13 +20,14 @@ RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue>
 }
 
 Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
-    : ctxt{ctxt}, globalEnv(std::move(env)), currentEnv(&globalEnv)
+    : ctxt{ctxt}, globalEnv(std::move(env))
 {
     // Built in functions.
     globalEnv.define("clock", Callable{0, [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
     {
         return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
     }});
+    stack.push(&globalEnv);
 }
 
 bool Interpreter::evaluate(StatementIndex stmt)
@@ -201,7 +202,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
 {
     RuntimeValue value = i.eval(a->value);
-    if (!i.currentEnv->assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
+    if (!i.getCurrentEnv().assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
         throw RuntimeError{a->name, "Undefined variable."};
 
     return value;
@@ -214,7 +215,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 {
-    if (auto val = i.currentEnv->get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
+    if (auto val = i.getCurrentEnv().get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
         return *val;
 
     throw RuntimeError{r->name, "Undefined variable."};
@@ -261,25 +262,23 @@ void Interpreter::StmtEvalVisitor::operator()(const VarDecl* s) const
     else
         val = Nil{};
 
-    i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
+    i.getCurrentEnv().define(std::get<std::string>(i.ctxt.getToken(s->name).value), val);
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
 {
     Callable callable{
         static_cast<unsigned>(s->params.size()),
-        [&params = s->params, body = s->body](Interpreter& interp,
-                                              std::vector<RuntimeValue> args) -> RuntimeValue
+        [&params = s->params, body = s->body, closure=&i.getCurrentEnv()](
+            Interpreter& interp,
+            std::vector<RuntimeValue> args) -> RuntimeValue
         {
-            // TODO: RAII
-            auto previous = interp.currentEnv;
-            Environment newEnv(interp.currentEnv);
-            interp.currentEnv = &newEnv;
+            auto *newEnv = interp.pushEnv(closure);
 
             // Bind arguments.
             for(unsigned i = 0; i < params.size(); ++i)
             {
-                newEnv.define(std::get<std::string>(interp.ctxt.getToken(params[i]).value), args[i]);
+                newEnv->define(std::get<std::string>(interp.ctxt.getToken(params[i]).value), args[i]);
             }
 
             try
@@ -288,16 +287,16 @@ void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
             }
             catch (const ReturnValue& retVal)
             {
-                interp.currentEnv = previous;
+                interp.popEnv();
                 return retVal.value ? *retVal.value : Nil{};
             }
 
-            interp.currentEnv = previous;
+            interp.popEnv();
             return Nil{};
         }
     };
 
-    i.currentEnv->define(std::get<std::string>(i.ctxt.getToken(s->name).value), callable);
+    i.getCurrentEnv().define(std::get<std::string>(i.ctxt.getToken(s->name).value), callable);
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const Return* s) const
@@ -310,17 +309,23 @@ void Interpreter::StmtEvalVisitor::operator()(const Return* s) const
 
 void Interpreter::StmtEvalVisitor::operator()(const Block* s) const
 {
-    // TODO: RAII
-    auto previous = i.currentEnv;
-    Environment newEnv(i.currentEnv);
-    i.currentEnv = &newEnv;
+    i.pushEnv(&i.getCurrentEnv());
 
-    for (auto child : s->statements)
+    try
     {
-        i.eval(child);
+        for (auto child : s->statements)
+        {
+            i.eval(child);
+        }
     }
-
-    i.currentEnv = previous;
+    catch(...)
+    {
+        // Return values are passed by exceptions, so we need to catch
+        // them to ensure popping env. We should switch to a different
+        // return mechanism.
+        i.popEnv();
+        throw;
+    }
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const IfStatement* s) const
@@ -335,4 +340,21 @@ void Interpreter::StmtEvalVisitor::operator()(const WhileStatement* s) const
 {
     while (isTruthy(i.eval(s->condition)))
         i.eval(s->body);
+}
+
+void Interpreter::collect()
+{
+    // TODO.
+}
+
+Environment* Interpreter::pushEnv(Environment *current)
+{
+    auto result = allEnvs.insert(std::make_unique<Environment>(current));
+    stack.push(result.first->get());
+    return result.first->get();
+}
+
+void Interpreter::popEnv()
+{
+    stack.pop();
 }

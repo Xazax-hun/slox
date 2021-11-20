@@ -3,8 +3,11 @@
 
 #include <variant>
 #include <vector>
+#include <stack>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
+#include <memory>
 
 #include <include/ast.h>
 #include <fmt/format.h>
@@ -124,17 +127,22 @@ public:
     bool evaluate(StatementIndex stmt);
 
     const ASTContext& getContext() { return ctxt; }
-    Environment getEnv() { return globalEnv; }
+    Environment& getGlobalEnv() { return globalEnv; }
+    Environment& getCurrentEnv() { return *stack.top(); }
 private:
     RuntimeValue eval(ExpressionIndex expr);
     void eval(StatementIndex expr);
 
     static bool isTruthy(const RuntimeValue& val);
     static void checkNumberOperand(const RuntimeValue& val, Index<Token> token);
+    void collect();
+    Environment* pushEnv(Environment* current);
+    void popEnv();
 
     const ASTContext& ctxt;
     Environment globalEnv;
-    Environment* currentEnv;
+    std::stack<Environment*> stack;
+    std::unordered_set<std::unique_ptr<Environment>> allEnvs;
 
     struct ExprEvalVisitor
     {
