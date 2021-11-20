@@ -20,14 +20,15 @@ RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue>
 }
 
 Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
-    : ctxt{ctxt}, globalEnv(std::move(env))
+    : ctxt{ctxt}, globalEnv(std::move(env)), collectCounter(0)
 {
     // Built in functions.
-    globalEnv.define("clock", Callable{0, [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
+    globalEnv.define("clock", Callable{0, &globalEnv,
+    [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
     {
         return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
     }});
-    stack.push(&globalEnv);
+    stack.push_back(&globalEnv);
 }
 
 bool Interpreter::evaluate(StatementIndex stmt)
@@ -237,7 +238,9 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Call* c) const
             argValues.push_back(i.eval(arg));
         }
 
-        return (*callable)(i, std::move(argValues));
+        auto retVal = (*callable)(i, std::move(argValues));
+        i.collect();
+        return retVal;
     }
 
     throw RuntimeError{c->open, "Can only call functions and classes."};
@@ -269,7 +272,8 @@ void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
 {
     Callable callable{
         static_cast<unsigned>(s->params.size()),
-        [&params = s->params, body = s->body, closure=&i.getCurrentEnv()](
+        &i.getCurrentEnv(),
+        [&params = s->params, body = s->body, closure = &i.getCurrentEnv()](
             Interpreter& interp,
             std::vector<RuntimeValue> args) -> RuntimeValue
         {
@@ -344,17 +348,71 @@ void Interpreter::StmtEvalVisitor::operator()(const WhileStatement* s) const
 
 void Interpreter::collect()
 {
-    // TODO.
+    if (collectCounter > 10)
+    {
+        collectCounter = 0;
+        std::unordered_set<Environment*> reached;
+        std::vector<Environment*> exploring{&getCurrentEnv()};
+        while(!exploring.empty())
+        {
+            auto env = exploring.back();
+            exploring.pop_back();
+            reached.insert(env);
+
+            auto p = env->enclosing;
+            while(p)
+            {
+                if (reached.contains(p))
+                    break;
+                reached.insert(p);
+                exploring.push_back(p);
+                p = p->enclosing;
+            }
+
+            for(auto& [_, val] : env->values)
+            {
+                if (auto callable = std::get_if<Callable>(&val))
+                {
+                    auto env = callable->closure;
+                    if (reached.contains(env))
+                        continue;
+                    reached.insert(env);
+                    exploring.push_back(env);
+                }
+            }
+        }
+
+#ifndef NDEBUG
+        auto before = allEnvs.size();
+#endif
+
+        for(auto it = allEnvs.begin(); it != allEnvs.end();)
+        {
+            if (reached.contains(it->get()))
+            {
+                ++it;
+                continue;
+            }
+
+            it = allEnvs.erase(it);
+        }
+
+#ifndef NDEBUG
+        fmt::print("Collecting environments. Size before: {}, size after {}.\n", before, allEnvs.size());
+#endif
+
+    }
+    ++collectCounter;
 }
 
 Environment* Interpreter::pushEnv(Environment *current)
 {
     auto result = allEnvs.insert(std::make_unique<Environment>(current));
-    stack.push(result.first->get());
+    stack.push_back(result.first->get());
     return result.first->get();
 }
 
 void Interpreter::popEnv()
 {
-    stack.pop();
+    stack.pop_back();
 }

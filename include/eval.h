@@ -3,7 +3,6 @@
 
 #include <variant>
 #include <vector>
-#include <stack>
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
@@ -12,7 +11,8 @@
 #include <include/ast.h>
 #include <fmt/format.h>
 
-struct Interpreter;
+class Interpreter;
+class Environment;
 
 // Representing runtime values.
 struct Nil{};
@@ -47,6 +47,7 @@ struct RuntimeError
 struct Callable
 {
     unsigned arity;
+    Environment* closure;
     std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>)> impl;
 
     RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args);
@@ -115,6 +116,7 @@ private:
     std::unordered_map<std::string, RuntimeValue> values;
 
     Environment* enclosing;
+    friend Interpreter;
 };
 
 // Evaluation logic.
@@ -128,21 +130,22 @@ public:
 
     const ASTContext& getContext() { return ctxt; }
     Environment& getGlobalEnv() { return globalEnv; }
-    Environment& getCurrentEnv() { return *stack.top(); }
+    Environment& getCurrentEnv() { return *stack.back(); }
 private:
     RuntimeValue eval(ExpressionIndex expr);
     void eval(StatementIndex expr);
 
     static bool isTruthy(const RuntimeValue& val);
     static void checkNumberOperand(const RuntimeValue& val, Index<Token> token);
-    void collect();
     Environment* pushEnv(Environment* current);
     void popEnv();
+    void collect();
 
     const ASTContext& ctxt;
     Environment globalEnv;
-    std::stack<Environment*> stack;
+    std::vector<Environment*> stack;
     std::unordered_set<std::unique_ptr<Environment>> allEnvs;
+    unsigned collectCounter;
 
     struct ExprEvalVisitor
     {
