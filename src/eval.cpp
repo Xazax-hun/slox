@@ -23,11 +23,15 @@ Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
     : ctxt{ctxt}, globalEnv(std::move(env)), collectCounter(0)
 {
     // Built in functions.
-    globalEnv.define("clock", Callable{0, &globalEnv,
-    [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
-    {
-        return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-    }});
+    globalEnv.define("clock",
+        Callable{
+            0, &globalEnv,
+            [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
+            {
+                return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+            }
+        }
+    );
     stack.push_back(&globalEnv);
 }
 
@@ -394,10 +398,6 @@ void Interpreter::collect()
             }
         }
 
-#ifndef NDEBUG
-        auto before = allEnvs.size();
-#endif
-
         for(auto it = allEnvs.begin(); it != allEnvs.end();)
         {
             if (reached.contains(it->get()))
@@ -408,10 +408,6 @@ void Interpreter::collect()
 
             it = allEnvs.erase(it);
         }
-
-#ifndef NDEBUG
-        fmt::print("Collecting environments. Size before: {}, size after {}.\n", before, allEnvs.size());
-#endif
 
     }
     ++collectCounter;
