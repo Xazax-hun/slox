@@ -203,8 +203,9 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
 {
     RuntimeValue value = i.eval(a->value);
-    if (!i.getCurrentEnv().assign(std::get<std::string>(i.ctxt.getToken(a->name).value), value))
-        throw RuntimeError{a->name, "Undefined variable."};
+    const auto& varName = std::get<std::string>(i.ctxt.getToken(a->name).value);
+    if (!i.getCurrentEnv().assign(varName, value))
+        throw RuntimeError{a->name, fmt::format("Undefined variable: '{}'.", varName)};
 
     return value;
 }
