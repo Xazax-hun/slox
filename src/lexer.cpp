@@ -47,10 +47,19 @@ std::optional<Token> Lexer::lex()
         switch (c)
         {
         //  Unambiguous single characters tokens.
-        case '(': return Token(LEFT_PAREN, line);
-        case ')': return Token(RIGHT_PAREN, line);
-        case '{': return Token(LEFT_BRACE, line);
-        case '}': return Token(RIGHT_BRACE, line);
+        case '(':
+            ++bracketBalance;
+            return Token(LEFT_PAREN, line);
+        case ')':
+            --bracketBalance;
+            return Token(RIGHT_PAREN, line);
+        case '{':
+            ++bracketBalance;
+            return Token(LEFT_BRACE, line);
+        case '}':
+            --bracketBalance;
+            return Token(RIGHT_BRACE, line);
+
         case ',': return Token(COMMA, line);
         case '.': return Token(DOT, line);
         case '-': return Token(MINUS, line);

@@ -12,8 +12,6 @@
 #include <include/parser.h>
 #include <include/eval.h>
 
-constexpr std::string_view prompt{"> "};
-
 bool runFile(std::string_view path, bool dumpAst)
 {
     std::ifstream file(path.data());
@@ -27,43 +25,6 @@ bool runFile(std::string_view path, bool dumpAst)
     return runSource(std::move(buffer).str(), dumpAst);
 }
 
-bool runPrompt(bool dumpAst)
-{
-    std::string line;
-    Parser parser;
-    Interpreter interpreter(parser.getContext());
-    while (true)
-    {
-        std::string line;
-        {
-            char *lineRaw = readline(::prompt.data());
-            if (!lineRaw)
-                break;
-            add_history(lineRaw);
-            line = lineRaw;
-        }
-
-        Lexer lexer(line);
-        auto maybeTokens = lexer.lexAll();
-        if (!maybeTokens)
-            return false;
-
-        auto maybeAst = parser.parse(std::move(*maybeTokens));
-        if (!maybeAst)
-            return false;
-
-        if (dumpAst)
-        {
-            ASTPrinter printer(parser.getContext());
-            fmt::print("{}\n",printer.print(*maybeAst));
-        }
-
-        if (!interpreter.evaluate(*maybeAst))
-            return false;
-    }
-    return true;
-}
-
 bool runSource(std::string sourceText, bool dumpAst)
 {
     Lexer lexer(sourceText);
@@ -72,7 +33,8 @@ bool runSource(std::string sourceText, bool dumpAst)
         return false;
 
     Parser parser;
-    auto maybeAst = parser.parse(std::move(*maybeTokens));
+    parser.addTokens(std::move(*maybeTokens));
+    auto maybeAst = parser.parse();
     if (!maybeAst)
         return false;
 
@@ -86,5 +48,76 @@ bool runSource(std::string sourceText, bool dumpAst)
     if (!interpreter.evaluate(*maybeAst))
         return false;
 
+    return true;
+}
+
+namespace
+{
+constexpr std::string_view prompt{"> "};
+constexpr std::string_view promptCont{".."};
+constexpr std::string_view indent{"  "};
+
+std::string getPrompt(int indent)
+{
+    if (indent == 0)
+        return std::string(::prompt);
+    
+    std::string promptText(::promptCont);
+    while (indent-- > 0)
+        promptText += ::indent;
+
+    return promptText;
+}
+} // anonymous namespace
+
+bool runPrompt(bool dumpAst)
+{
+    std::string line;
+    int indent = 0;
+    std::string indentText;
+
+    Parser parser;
+    Interpreter interpreter(parser.getContext());
+
+    while (true)
+    {
+        std::string line;
+        {
+            char *lineRaw = readline(::getPrompt(indent).data());
+            if (!lineRaw)
+                break;
+            add_history(lineRaw);
+            line = lineRaw;
+        }
+
+        Lexer lexer(line);
+        auto maybeTokens = lexer.lexAll();
+        if (!maybeTokens)
+            return false;
+
+        parser.addTokens(std::move(*maybeTokens));
+
+        // We only want to parse complete declarations/statements.
+        // If the brackets are unbalanced, we wait for more input
+        // before actually doing some parsing.
+        indent += lexer.getBracketBalance();
+        if (indent > 0)
+        {
+            continue;
+        }
+
+        auto maybeAst = parser.parse();
+        if (!maybeAst)
+            return false;
+
+        if (dumpAst)
+        {
+            ASTPrinter printer(parser.getContext());
+            fmt::print("{}\n",printer.print(*maybeAst));
+        }
+
+        if (!interpreter.evaluate(*maybeAst))
+            return false;
+    }
     return true;
 }

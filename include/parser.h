@@ -10,7 +10,12 @@
 class Parser
 {
 public:
-    std::optional<Index<Unit>> parse(std::vector<Token> tokens);
+    // Reentrant. Invoking again will continue parsing with the tokens
+    // added since the last invocation.
+    std::optional<Index<Unit>> parse();
+
+    // Add the tokens without continuing the parsing.
+    void addTokens(std::vector<Token> tokens);
 
     const ASTContext& getContext() const { return context; }
 

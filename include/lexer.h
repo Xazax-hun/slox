@@ -111,6 +111,8 @@ public:
 
     std::optional<std::vector<Token>> lexAll();
 
+    int getBracketBalance() { return bracketBalance; }
+
 private:
     std::optional<Token> lex();
     std::optional<Token> lexString();
@@ -126,6 +128,7 @@ private:
     int start = 0;
     int current = 0;
     int line = 1;
+    int bracketBalance = 0;
     bool hasError = false; // TODO: get rid of this.
 
     static const std::unordered_map<std::string_view, TokenType> keywords;

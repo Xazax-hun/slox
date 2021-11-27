@@ -15,10 +15,14 @@
 
 using enum TokenType;
 
-// Entry point to parsing.
-std::optional<Index<Unit>> Parser::parse(std::vector<Token> tokens)
+void Parser::addTokens(std::vector<Token> tokens)
 {
     context.addTokens(std::move(tokens));
+}
+
+// Entry point to parsing.
+std::optional<Index<Unit>> Parser::parse()
+{
     std::vector<StatementIndex> statements;
     while(!isAtEnd())
     {
