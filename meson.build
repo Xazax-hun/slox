@@ -8,7 +8,7 @@ readline_dep = dependency('readline')
 
 # Libraries
 slox_static_sources = ['src/interpreter.cpp', 'src/lexer.cpp', 'src/parser.cpp',
-                       'src/ast.cpp', 'src/utils.cpp', 'src/eval.cpp']
+                       'src/ast.cpp', 'src/utils.cpp', 'src/eval.cpp', 'src/analysis.cpp']
 slox_static_lib = static_library('libslox', slox_static_sources,
                                  dependencies: [fmt_dep, readline_dep])
 

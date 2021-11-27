@@ -4,6 +4,7 @@
 #include <chrono>
 
 #include <include/utils.h>
+#include <include/analysis.h>
 
 using enum TokenType;
 
@@ -32,13 +33,19 @@ Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
             }
         }
     );
-    stack.push_back(&globalEnv);
 }
 
 bool Interpreter::evaluate(StatementIndex stmt)
 {
     try
     {
+        // Resolve local names.
+        NameResolver resolver(ctxt);
+        if(auto res = resolver.resolveVariables(stmt); res)
+            resolution.merge(std::move(*res));
+        else
+            return false;
+
         eval(stmt);
         return true;
     }
@@ -46,19 +53,6 @@ bool Interpreter::evaluate(StatementIndex stmt)
     {
         error(ctxt.getToken(e.where).line, e.message);
         return false;
-    }
-}
-
-std::optional<RuntimeValue> Interpreter::evaluate(ExpressionIndex expr)
-{
-    try
-    {
-        return eval(expr);
-    }
-    catch(const RuntimeError& e)
-    {
-        error(ctxt.getToken(e.where).line, e.message);
-        return std::nullopt;
     }
 }
 
@@ -81,6 +75,7 @@ void Interpreter::checkNumberOperand(const RuntimeValue& val, Index<Token> token
 
 RuntimeValue Interpreter::eval(ExpressionIndex expr)
 {
+    currentExpr = expr;
     auto node = ctxt.getNode(expr);
     return std::visit(exprVisitor, node);
 }
@@ -208,10 +203,21 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
 {
     RuntimeValue value = i.eval(a->value);
     const auto& varName = std::get<std::string>(i.ctxt.getToken(a->name).value);
-    if (!i.getCurrentEnv().assign(varName, value))
-        throw RuntimeError{a->name, fmt::format("Undefined variable: '{}'.", varName)};
 
-    return value;
+    auto it = i.resolution.find(i.currentExpr);
+    if (it == i.resolution.end())
+    {
+        // Assume it is a global
+        if (i.globalEnv.assign(varName, value))
+            return value;
+    }
+    else
+    {
+        if (i.getCurrentEnv().assignAt(it->second, varName, value))
+            return value;
+    }
+
+    throw RuntimeError{a->name, fmt::format("Undefined variable: '{}'.", varName)};
 }
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
@@ -221,8 +227,19 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Grouping* g) const
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
 {
-    if (auto val = i.getCurrentEnv().get(std::get<std::string>(i.ctxt.getToken(r->name).value)))
-        return *val;
+    const auto& name = std::get<std::string>(i.ctxt.getToken(r->name).value);
+    auto it = i.resolution.find(i.currentExpr);
+    if (it == i.resolution.end())
+    {
+        // Assume it is a global
+        if (auto val = i.globalEnv.get(name))
+            return *val;
+    }
+    else
+    {
+        if (auto val = i.getCurrentEnv().getAt(it->second, name))
+            return *val;
+    }
 
     throw RuntimeError{r->name, "Undefined variable."};
 }

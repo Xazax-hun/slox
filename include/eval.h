@@ -76,17 +76,21 @@ inline bool operator==(const Callable&, const Callable&) { return false; }
 
 std::string print(const RuntimeValue&);
 
+using Resolution = std::unordered_map<ExpressionIndex, int>;
+
+// TODO: overhaul environment so each variable has a unique index
+//       instead of relying on names.
 class Environment
 {
 public:
-    Environment(Environment* enclosing = nullptr) : enclosing(enclosing) {}
+    Environment(Environment* enclosing = nullptr) noexcept : enclosing(enclosing) {}
 
-    void define(const std::string& name, const RuntimeValue& value)
+    void define(const std::string& name, const RuntimeValue& value) noexcept
     {
         values.insert_or_assign(name, value);
     }
 
-    bool assign(const std::string& name, const RuntimeValue& value)
+    bool assign(const std::string& name, const RuntimeValue& value) noexcept
     {
         if (auto it = values.find(name); it != values.end())
         {
@@ -94,25 +98,37 @@ public:
             return true;
         }
 
-        if (enclosing)
-            return enclosing->assign(name, value);
-
         return false;
     }
 
-    std::optional<RuntimeValue> get(const std::string& name) const
+    bool assignAt(int distance, const std::string& name, const RuntimeValue& value) noexcept
+    {
+        return ancestor(distance)->assign(name, value);
+    }
+
+    std::optional<RuntimeValue> get(const std::string& name) const noexcept
     {
         if (auto it = values.find(name); it != values.end())
             return it->second;
 
-        if (enclosing)
-            return enclosing->get(name);
-
         return std::nullopt; 
     }
 
+    std::optional<RuntimeValue> getAt(int distance, const std::string& name) const noexcept
+    {
+        return ancestor(distance)->get(name);
+    }
+
 private:
-    // TODO: make this a string view.
+    Environment* ancestor(int distance) const noexcept
+    {
+        Environment* result = const_cast<Environment*>(this);
+        while(distance-- > 0)
+            result = result->enclosing;
+        
+        return result;
+    }
+
     std::unordered_map<std::string, RuntimeValue> values;
 
     Environment* enclosing;
@@ -125,12 +141,11 @@ class Interpreter
 public:
     Interpreter(const ASTContext& ctxt, Environment env = {});
 
-    std::optional<RuntimeValue> evaluate(ExpressionIndex expr);
     bool evaluate(StatementIndex stmt);
 
-    const ASTContext& getContext() { return ctxt; }
-    Environment& getGlobalEnv() { return globalEnv; }
-    Environment& getCurrentEnv() { return *stack.back(); }
+    const ASTContext& getContext() const noexcept { return ctxt; }
+    Environment& getGlobalEnv() noexcept { return globalEnv; }
+    Environment& getCurrentEnv() noexcept { return stack.empty() ? getGlobalEnv() : *stack.back(); }
 private:
     RuntimeValue eval(ExpressionIndex expr);
     void eval(StatementIndex expr);
@@ -144,8 +159,12 @@ private:
     const ASTContext& ctxt;
     Environment globalEnv;
     std::vector<Environment*> stack;
+    Resolution resolution;
+
     std::unordered_set<std::unique_ptr<Environment>> allEnvs;
     unsigned collectCounter;
+
+    ExpressionIndex currentExpr; // TODO: get rid of this.
 
     struct ExprEvalVisitor
     {

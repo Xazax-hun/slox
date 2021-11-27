@@ -102,16 +102,16 @@ struct Token
         type(type), line(line), value(std::move(value)) {}
 };
 
-std::string print(const Token&);
+std::string print(const Token&) noexcept;
 
 class Lexer
 {
 public:
-    Lexer(std::string source) : source(std::move(source)) {}
+    Lexer(std::string source) noexcept : source(std::move(source)) {}
 
     std::optional<std::vector<Token>> lexAll();
 
-    int getBracketBalance() { return bracketBalance; }
+    int getBracketBalance() const noexcept { return bracketBalance; }
 
 private:
     std::optional<Token> lex();

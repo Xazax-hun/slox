@@ -6,7 +6,7 @@
 
 using enum TokenType;
 
-std::string print(const Token& t)
+std::string print(const Token& t) noexcept
 {
     switch (t.type)
     {

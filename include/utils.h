@@ -7,7 +7,7 @@
 template<class... Ts> struct Overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> Overloaded(Ts...) -> Overloaded<Ts...>;
 
-void error(int line, std::string message);
-void report(int line, std::string where, std::string message);
+void error(int line, std::string message) noexcept;
+void report(int line, std::string where, std::string message) noexcept;
 
 #endif
