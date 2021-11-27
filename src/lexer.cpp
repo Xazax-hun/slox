@@ -125,12 +125,50 @@ std::optional<Token> Lexer::lex()
 
 std::optional<Token> Lexer::lexString()
 {
-    // TODO: Add support for escaping.
-    while (peek() != '"' && !isAtEnd())
+    std::string content;
+    bool escaping = false;
+    while (!isAtEnd())
     {
+        if (escaping)
+        {
+            switch (peek())
+            {
+            case '\\':
+            case '"':
+                content += peek();
+                break;
+
+            case 'n':
+                content += '\n';
+                break;
+            case 't':
+                content += '\t';
+                break;
+            
+            default:
+                error(line, fmt::format("Unknown escape sequence '\\{}'.", peek()));
+                return std::nullopt;
+            }
+            escaping = false;
+            advance();
+            continue;
+        }
+        else
+        {
+            if (peek() == '"')
+                break;
+
+            if (peek() == '\\')
+            {
+                escaping = true;
+                advance();
+                continue;
+            }
+        }
+        
         if (peek() == '\n')
             line++;
-        advance();
+        content += advance();
     }
 
     if (isAtEnd()) {
@@ -141,7 +179,7 @@ std::optional<Token> Lexer::lexString()
     // Skip closing ".
     advance();
     // Trim surrounding quotes.
-    return Token(STRING, line, source.substr(start + 1, current - start - 2));
+    return Token(STRING, line, content);
 }
 
 std::optional<Token> Lexer::lexNumber()
@@ -190,14 +228,14 @@ bool Lexer::match(char expected)
 char Lexer::peek() const
 {
     if (isAtEnd())
-        return false;
+        return '\0';
     return source[current];
 }
 
 char Lexer::peekNext() const
 {
     if (static_cast<unsigned>(current + 1) >= source.length())
-        return false;
+        return '\0';
     return source[current + 1];
 }
 

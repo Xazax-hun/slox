@@ -117,6 +117,11 @@ TEST(Lexer, LineNumbers)
     }
 }
 
-// TODO: add tests for ambiguous lexing, e.g.: ===
+TEST(Lexer, Escaping)
+{
+    auto tokenList = lexString(R"("Hello\t\"world!\"\n")").value();
+    EXPECT_EQ(2, tokenList.size());
+    EXPECT_EQ("Hello\t\"world!\"\n", std::get<std::string>(tokenList.front().value));
+}
 
 } // namespace
