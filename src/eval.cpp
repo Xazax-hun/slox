@@ -330,6 +330,8 @@ void Interpreter::StmtEvalVisitor::operator()(const Block* s) const
         i.popEnv();
         throw;
     }
+
+    i.popEnv();
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const IfStatement* s) const
