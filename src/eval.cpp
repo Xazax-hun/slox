@@ -346,6 +346,12 @@ void Interpreter::StmtEvalVisitor::operator()(const WhileStatement* s) const
         i.eval(s->body);
 }
 
+void Interpreter::StmtEvalVisitor::operator()(const Unit* s) const
+{
+    for (auto stmt : s->statements)
+        i.eval(stmt);
+}
+
 void Interpreter::collect()
 {
     if (collectCounter > 10)

@@ -25,6 +25,7 @@ struct Block;
 struct IfStatement;
 struct WhileStatement;
 struct Return;
+struct Unit;
 
 template<typename T>
 struct Index
@@ -40,7 +41,8 @@ using Expression = std::variant<const Binary*, const Assign*,
 using Statement = std::variant<const ExprStatement*, const PrintStatement*,
                                const VarDecl*, const Block*,
                                const IfStatement*, const WhileStatement*,
-                               const FunDecl*, const Return*>;
+                               const FunDecl*, const Return*,
+                               const Unit*>;
 
 using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
                                      Index<Unary>, Index<Literal>,
@@ -49,7 +51,8 @@ using ExpressionIndex = std::variant<Index<Binary>, Index<Assign>,
 using StatementIndex = std::variant<Index<ExprStatement>, Index<PrintStatement>,
                                     Index<VarDecl>, Index<Block>,
                                     Index<IfStatement>, Index<WhileStatement>,
-                                    Index<FunDecl>, Index<Return>>;
+                                    Index<FunDecl>, Index<Return>,
+                                    Index<Unit>>;
 
 struct Binary
 {
@@ -141,6 +144,11 @@ struct WhileStatement
     StatementIndex body;
 };
 
+struct Unit
+{
+    std::vector<StatementIndex> statements;
+};
+
 class ASTContext
 {
 public:
@@ -221,6 +229,11 @@ public:
     {
         return insert_node(whiles, condition, body);
     }
+
+    Index<Unit> makeUnit(std::vector<StatementIndex> statements)
+    {
+        return insert_node(units, std::move(statements));
+    }
     
     // Getters.
     Expression getNode(ExpressionIndex idx) const
@@ -267,6 +280,7 @@ private:
     std::vector<Block>            blocks;
     std::vector<IfStatement>      ifs;
     std::vector<WhileStatement>   whiles;
+    std::vector<Unit>             units;
 
     std::vector<Token>            tokens;
 
@@ -293,6 +307,7 @@ private:
         auto operator()(Index<Block> index) const            -> Statement { return &ctx.blocks[index.id]; }
         auto operator()(Index<IfStatement> index) const      -> Statement { return &ctx.ifs[index.id]; }
         auto operator()(Index<WhileStatement> index) const   -> Statement { return &ctx.whiles[index.id]; }
+        auto operator()(Index<Unit> index) const             -> Statement { return &ctx.units[index.id]; }
     } statementNodeGetter{*this};
 
 
@@ -336,6 +351,7 @@ private:
         std::string operator()(const Block* s) const;
         std::string operator()(const IfStatement* s) const;
         std::string operator()(const WhileStatement* s) const;
+        std::string operator()(const Unit* s) const;
     } stmtVisitor{*this};
 };
 

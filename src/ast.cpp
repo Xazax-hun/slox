@@ -143,3 +143,17 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const WhileStatement* s) co
     return parenthesize(std::string_view("while"), printer.print(s->condition),
         printer.print(s->body));
 }
+
+std::string ASTPrinter::StmtPrintVisitor::operator()(const Unit* s) const
+{
+    std::stringstream ss;
+    ss << "(unit";
+
+    for (auto child : s->statements)
+    {
+        ss << " " << printer.print(child);
+    }
+
+    ss << ")";
+    return std::move(ss).str();
+}

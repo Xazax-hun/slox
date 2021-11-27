@@ -15,6 +15,20 @@
 
 using enum TokenType;
 
+// Entry point to parsing.
+std::optional<Index<Unit>> Parser::parse(std::vector<Token> tokens)
+{
+    context.addTokens(std::move(tokens));
+    std::vector<StatementIndex> statements;
+    while(!isAtEnd())
+    {
+        BIND(stmt, declaration());
+        statements.push_back(stmt);
+    }
+
+    return context.makeUnit(std::move(statements));
+}
+
 std::optional<StatementIndex> Parser::declaration()
 {
     // TODO: synchronize.

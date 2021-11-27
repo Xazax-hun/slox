@@ -170,6 +170,7 @@ private:
         void operator()(const Block* s) const;
         void operator()(const IfStatement* s) const;
         void operator()(const WhileStatement* s) const;
+        void operator()(const Unit* s) const;
     } stmtVisitor{*this};
 };
 

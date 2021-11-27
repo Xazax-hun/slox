@@ -30,10 +30,8 @@ bool runFile(std::string_view path, bool dumpAst)
 bool runPrompt(bool dumpAst)
 {
     std::string line;
-    // TODO: more sophisticated solution for persisting env across lines.
-    Environment env;
     Parser parser;
-    Interpreter interpreter(parser.getContext(), env);
+    Interpreter interpreter(parser.getContext());
     while (true)
     {
         std::string line;
@@ -81,7 +79,7 @@ bool runSource(std::string sourceText, bool dumpAst)
     if (dumpAst)
     {
         ASTPrinter printer(parser.getContext());
-        fmt::print("{}\n",printer.print(*maybeAst));
+        fmt::print("{}\n", printer.print(*maybeAst));
     }
 
     Interpreter interpreter(parser.getContext());
