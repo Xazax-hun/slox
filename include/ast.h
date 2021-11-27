@@ -117,7 +117,7 @@ struct FunDecl
 {
     Index<Token> name;
     std::vector<Index<Token>> params;
-    Index<Block> body;
+    std::vector<StatementIndex> body;
 };
 
 struct Return
@@ -205,9 +205,9 @@ public:
         return insert_node(varDecls, name, init);
     }
 
-    Index<FunDecl> makeFunDecl(Index<Token> name, std::vector<Index<Token>> params, Index<Block> body)
+    Index<FunDecl> makeFunDecl(Index<Token> name, std::vector<Index<Token>> params, std::vector<StatementIndex> body)
     {
-        return insert_node(funDecls, name, std::move(params), body);
+        return insert_node(funDecls, name, std::move(params), std::move(body));
     }
 
     Index<Return> makeReturn(Index<Token> keyword, std::optional<ExpressionIndex> value)

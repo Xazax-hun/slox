@@ -105,9 +105,14 @@ std::string ASTPrinter::StmtPrintVisitor::operator()(const FunDecl* s) const
         ss << " " << ::print(par, printer.c);
     }
 
-    ss << " " << printer.print(s->body);
+    ss << " (body";
 
-    ss << ")";
+    for (auto stmt : s->body)
+    {
+        ss << " " << printer.print(stmt);
+    }
+
+    ss << "))";
     return std::move(ss).str();
 }
 

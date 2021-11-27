@@ -287,7 +287,10 @@ void Interpreter::StmtEvalVisitor::operator()(const FunDecl* s) const
 
             try
             {
-                interp.eval(body);
+                for (auto stmt : body)
+                {
+                    interp.eval(stmt);
+                }
             }
             catch (const ReturnValue& retVal)
             {

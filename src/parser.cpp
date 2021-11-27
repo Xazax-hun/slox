@@ -26,6 +26,8 @@ std::optional<Index<Unit>> Parser::parse(std::vector<Token> tokens)
         statements.push_back(stmt);
     }
 
+    // TODO: in interactive mode, append to existing unit instead
+    //       of creating a new one.
     return context.makeUnit(std::move(statements));
 }
 
@@ -63,7 +65,7 @@ std::optional<Index<FunDecl>> Parser::funDeclaration()
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
     consume(LEFT_BRACE, "Expect '{' before function body.");
-    BIND(body, block());
+    BIND(body, statementList());
 
     return context.makeFunDecl(name, params, body);
 }
@@ -202,6 +204,12 @@ std::optional<Index<WhileStatement>> Parser::whileStatement()
 
 std::optional<Index<Block>> Parser::block()
 {
+    BIND(statements, statementList());
+    return context.makeBlock(std::move(statements));
+}
+
+std::optional<std::vector<StatementIndex>> Parser::statementList()
+{
     std::vector<StatementIndex> statements;
 
     while(!check(RIGHT_BRACE) && !isAtEnd())
@@ -212,7 +220,7 @@ std::optional<Index<Block>> Parser::block()
 
     consume(RIGHT_BRACE, "Expect '}' after block.");
 
-    return context.makeBlock(std::move(statements));
+    return statements;
 }
 
 std::optional<Index<ExprStatement>> Parser::expressionStatement()

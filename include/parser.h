@@ -41,6 +41,8 @@ private:
     std::optional<ExpressionIndex> call();
     std::optional<ExpressionIndex> primary();
 
+    // Helpers.
+    std::optional<std::vector<StatementIndex>> statementList();
     std::optional<ExpressionIndex> finishCall(Index<Token> begin, ExpressionIndex callee);
 
     // Error recovery.
