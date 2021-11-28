@@ -147,6 +147,7 @@ std::optional<Token> Lexer::lexString()
             
             default:
                 diag.error(line, fmt::format("Unknown escape sequence '\\{}'.", peek()));
+                hasError = true;
                 return std::nullopt;
             }
             escaping = false;
@@ -173,6 +174,7 @@ std::optional<Token> Lexer::lexString()
 
     if (isAtEnd()) {
         diag.error(line, "Unterminated string.");
+        hasError = true;
         return std::nullopt;
     }
 

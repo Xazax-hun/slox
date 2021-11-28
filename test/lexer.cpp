@@ -152,7 +152,26 @@ TEST(Lexer, Escaping)
 
 TEST(Lexer, ErrorMessages)
 {
-    // TODO: add dependency injection so it is possible to extract errors.
+    {
+        std::stringstream output;
+        auto maybeTokens = lexString("|", output);
+        EXPECT_FALSE(maybeTokens.has_value());
+        EXPECT_EQ("[line 1] Error : Unexpected token: '|'.\n", output.str());
+    }
+
+    {
+        std::stringstream output;
+        auto maybeTokens = lexString("\"\\|\"", output);
+        EXPECT_FALSE(maybeTokens.has_value());
+        EXPECT_EQ("[line 1] Error : Unknown escape sequence '\\|'.\n", output.str());
+    }
+
+    {
+        std::stringstream output;
+        auto maybeTokens = lexString("\"This is unterminated.", output);
+        EXPECT_FALSE(maybeTokens.has_value());
+        EXPECT_EQ("[line 1] Error : Unterminated string.\n", output.str());
+    }
 }
 
 } // namespace
