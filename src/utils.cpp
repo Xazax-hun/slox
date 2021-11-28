@@ -2,13 +2,12 @@
 #include <fmt/format.h>
 
 
-void error(int line, std::string message) noexcept
+void DiagnosticEmitter::error(int line, std::string message) const noexcept
 {
     report(line, "", std::move(message));
 }
 
-void report(int line, std::string where, std::string message) noexcept
+void DiagnosticEmitter::report(int line, std::string where, std::string message) const noexcept
 {
-    fmt::print(stderr, "[line {}] Error {}: {}\n", line,
-        std::move(where), std::move(message));
+    err << fmt::format("[line {}] Error {}: {}\n", line, std::move(where), std::move(message));
 }

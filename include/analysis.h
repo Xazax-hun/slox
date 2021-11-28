@@ -2,6 +2,7 @@
 #define ANALYSIS_H
 
 #include <include/ast.h>
+#include <include/utils.h>
 
 #include <unordered_map>
 #include <string>
@@ -20,8 +21,9 @@ using Resolution = std::unordered_map<ExpressionIndex, int>;
 class NameResolver
 {
 public:
-    NameResolver(const ASTContext& ctxt) : ctxt(ctxt) {}
-    std::optional<Resolution> resolveVariables(StatementIndex stmt);
+    NameResolver(const ASTContext& ctxt, const DiagnosticEmitter& diag) noexcept
+        : ctxt(ctxt), diag(diag) {}
+    std::optional<Resolution> resolveVariables(StatementIndex stmt) noexcept;
 
 private:
     void resolve(ExpressionIndex expr);
@@ -62,6 +64,7 @@ private:
     } stmtVisitor{*this};
 
     const ASTContext& ctxt;
+    const DiagnosticEmitter& diag;
 
     using Scope = std::unordered_map<std::string, bool>;
     std::vector<Scope> stack;

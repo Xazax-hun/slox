@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -14,6 +15,11 @@
 
 bool runFile(std::string_view path, bool dumpAst)
 {
+    return runFile(path, std::cout, std::cerr, dumpAst);
+}
+
+bool runFile(std::string_view path, std::ostream& out, std::ostream& err, bool dumpAst)
+{
     std::ifstream file(path.data());
     if (!file) 
         return false;
@@ -22,17 +28,23 @@ bool runFile(std::string_view path, bool dumpAst)
     //       the full source text in memory.
     std::stringstream buffer;
     buffer << file.rdbuf();
-    return runSource(std::move(buffer).str(), dumpAst);
+    return runSource(std::move(buffer).str(), out, err, dumpAst);
 }
 
 bool runSource(std::string sourceText, bool dumpAst)
 {
-    Lexer lexer(sourceText);
+    return runSource(std::move(sourceText), std::cout, std::cerr, dumpAst);
+}
+
+bool runSource(std::string sourceText, std::ostream& out, std::ostream& err, bool dumpAst)
+{
+    DiagnosticEmitter emitter(out, err);
+    Lexer lexer(sourceText, emitter);
     auto maybeTokens = lexer.lexAll();
     if (!maybeTokens)
         return false;
 
-    Parser parser;
+    Parser parser(emitter);
     parser.addTokens(std::move(*maybeTokens));
     auto maybeAst = parser.parse();
     if (!maybeAst)
@@ -44,7 +56,7 @@ bool runSource(std::string sourceText, bool dumpAst)
         fmt::print("{}\n", printer.print(*maybeAst));
     }
 
-    Interpreter interpreter(parser.getContext());
+    Interpreter interpreter(parser.getContext(), emitter);
     if (!interpreter.evaluate(*maybeAst))
         return false;
 
@@ -72,25 +84,39 @@ std::string getPrompt(int indent)
 
 bool runPrompt(bool dumpAst)
 {
+    return runPrompt(std::cin, std::cout, std::cerr, dumpAst);
+}
+
+bool runPrompt(std::istream& in, std::ostream& out, std::ostream& err, bool dumpAst)
+{
     std::string line;
     int indent = 0;
     std::string indentText;
 
-    Parser parser;
-    Interpreter interpreter(parser.getContext());
+    DiagnosticEmitter emitter(out, err);
+    Parser parser(emitter);
+    Interpreter interpreter(parser.getContext(), emitter);
 
     while (true)
     {
         std::string line;
         {
-            char *lineRaw = readline(::getPrompt(indent).data());
-            if (!lineRaw)
-                break;
-            add_history(lineRaw);
-            line = lineRaw;
+            if (&in == &std::cin)
+            {
+                char *lineRaw = readline(::getPrompt(indent).data());
+                if (!lineRaw)
+                    break;
+                add_history(lineRaw);
+                line = lineRaw;
+            }
+            else
+            {
+                if (!std::getline(in, line))
+                    break;
+            }
         }
 
-        Lexer lexer(line);
+        Lexer lexer(line, emitter);
         auto maybeTokens = lexer.lexAll();
         if (!maybeTokens)
             return false;

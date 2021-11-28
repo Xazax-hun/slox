@@ -113,7 +113,7 @@ std::optional<Token> Lexer::lex()
             if (isalpha(c))
                 return lexIdentifier();
 
-            error(line, fmt::format("Unexpected token: '{}'.", source.substr(start, current - start)));
+            diag.error(line, fmt::format("Unexpected token: '{}'.", source.substr(start, current - start)));
             hasError = true;
             return std::nullopt;
         }
@@ -146,7 +146,7 @@ std::optional<Token> Lexer::lexString()
                 break;
             
             default:
-                error(line, fmt::format("Unknown escape sequence '\\{}'.", peek()));
+                diag.error(line, fmt::format("Unknown escape sequence '\\{}'.", peek()));
                 return std::nullopt;
             }
             escaping = false;
@@ -172,7 +172,7 @@ std::optional<Token> Lexer::lexString()
     }
 
     if (isAtEnd()) {
-        error(line, "Unterminated string.");
+        diag.error(line, "Unterminated string.");
         return std::nullopt;
     }
 

@@ -457,15 +457,15 @@ void Parser::synchronize()
     }
 }
 
-void Parser::error(Index<Token> tIdx, std::string message)
+void Parser::error(Index<Token> tIdx, std::string message) noexcept
 {
     const Token& t = context.getToken(tIdx);
     if (t.type == END_OF_FILE)
     {
-        report(t.line, " at end", std::move(message));
+        diag.report(t.line, " at end", std::move(message));
     }
     else
     {
-        report(t.line, fmt::format(" at '{}'", print(t)), std::move(message));
+        diag.report(t.line, fmt::format(" at '{}'", print(t)), std::move(message));
     }
 }

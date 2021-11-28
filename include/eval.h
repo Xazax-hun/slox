@@ -8,8 +8,10 @@
 #include <unordered_set>
 #include <memory>
 
-#include <include/ast.h>
 #include <fmt/format.h>
+
+#include <include/ast.h>
+#include <include/utils.h>
 
 class Interpreter;
 class Environment;
@@ -139,7 +141,7 @@ private:
 class Interpreter
 {
 public:
-    Interpreter(const ASTContext& ctxt, Environment env = {});
+    Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, Environment env = {});
 
     bool evaluate(StatementIndex stmt);
 
@@ -157,6 +159,8 @@ private:
     void collect();
 
     const ASTContext& ctxt;
+    const DiagnosticEmitter& diag;
+
     Environment globalEnv;
     std::vector<Environment*> stack;
     Resolution resolution;

@@ -20,8 +20,8 @@ RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue>
     return impl(interp, args);
 }
 
-Interpreter::Interpreter(const ASTContext& ctxt, Environment env)
-    : ctxt{ctxt}, globalEnv(std::move(env)), collectCounter(0)
+Interpreter::Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, Environment env)
+    : ctxt{ctxt}, diag(diag), globalEnv(std::move(env)), collectCounter(0)
 {
     // Built in functions.
     globalEnv.define("clock",
@@ -40,7 +40,7 @@ bool Interpreter::evaluate(StatementIndex stmt)
     try
     {
         // Resolve local names.
-        NameResolver resolver(ctxt);
+        NameResolver resolver(ctxt, diag);
         if(auto res = resolver.resolveVariables(stmt); res)
             resolution.merge(std::move(*res));
         else
@@ -51,7 +51,7 @@ bool Interpreter::evaluate(StatementIndex stmt)
     }
     catch(const RuntimeError& e)
     {
-        error(ctxt.getToken(e.where).line, e.message);
+        diag.error(ctxt.getToken(e.where).line, e.message);
         return false;
     }
 }

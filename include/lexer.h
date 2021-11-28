@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <cassert>
 
+#include <include/utils.h>
+
 enum class TokenType : unsigned char
 {
     // Single-character tokens.
@@ -107,7 +109,8 @@ std::string print(const Token&) noexcept;
 class Lexer
 {
 public:
-    Lexer(std::string source) noexcept : source(std::move(source)) {}
+    Lexer(std::string source, const DiagnosticEmitter& diag) noexcept
+        : source(std::move(source)), diag(diag) {}
 
     std::optional<std::vector<Token>> lexAll();
 
@@ -125,6 +128,7 @@ private:
     bool match(char expected);
 
     std::string source;
+    const DiagnosticEmitter& diag;
     int start = 0;
     int current = 0;
     int line = 1;

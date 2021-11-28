@@ -10,7 +10,7 @@
 // * Definitive initialization?
 // * After break is implemented: check whether it is inside a loop.
 
-std::optional<Resolution> NameResolver::resolveVariables(StatementIndex stmt)
+std::optional<Resolution> NameResolver::resolveVariables(StatementIndex stmt) noexcept
 {
     try
     {
@@ -19,7 +19,7 @@ std::optional<Resolution> NameResolver::resolveVariables(StatementIndex stmt)
     }
     catch(const CompileTimeError& e)
     {
-        error(ctxt.getToken(e.where).line, e.message);
+        diag.error(ctxt.getToken(e.where).line, e.message);
         return std::nullopt;
     }
 }

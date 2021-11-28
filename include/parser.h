@@ -6,10 +6,13 @@
 
 #include "include/lexer.h"
 #include "include/ast.h"
+#include "include/utils.h"
 
 class Parser
 {
 public:
+    Parser(const DiagnosticEmitter& diag) noexcept : diag(diag) {}
+
     // Reentrant. Invoking again will continue parsing with the tokens
     // added since the last invocation.
     std::optional<Index<Unit>> parse();
@@ -54,21 +57,21 @@ private:
     void synchronize();
 
     // Utilities.
-    Index<Token> peek() const { return {current}; }
-    Index<Token> previous() const { return {current - 1}; }
-    bool isAtEnd() const
+    Index<Token> peek() const noexcept { return {current}; }
+    Index<Token> previous() const noexcept { return {current - 1}; }
+    bool isAtEnd() const noexcept
     {
         return context.getToken(peek()).type == TokenType::END_OF_FILE;
     }
 
-    bool check(TokenType type) const
+    bool check(TokenType type) const noexcept
     {
         if (isAtEnd()) return false;
         return context.getToken(peek()).type == type;
     }
 
     template<typename... T>
-    bool match(T... tokenTypes)
+    bool match(T... tokenTypes) noexcept
     {
         bool b = (check(tokenTypes) || ...);
         if (b)
@@ -76,13 +79,13 @@ private:
         return b;
     }
 
-    Index<Token> advance()
+    Index<Token> advance() noexcept
     {
         if (!isAtEnd()) ++current;
         return previous();
     }
 
-    std::optional<Index<Token>> consume(TokenType type, std::string message)
+    std::optional<Index<Token>> consume(TokenType type, std::string message) noexcept
     {
         if (check(type))
             return advance();
@@ -91,10 +94,11 @@ private:
         return std::nullopt;
     }
 
-    void error(Index<Token> t, std::string message);
+    void error(Index<Token> t, std::string message) noexcept;
 
     ASTContext context;
     unsigned current = 0;
+    const DiagnosticEmitter& diag;
 };
 
 #endif
