@@ -124,4 +124,9 @@ TEST(Lexer, Escaping)
     EXPECT_EQ("Hello\t\"world!\"\n", std::get<std::string>(tokenList.front().value));
 }
 
+TEST(Lexer, ErrorMessages)
+{
+    // TODO: add dependency injection so it is possible to extract errors.
+}
+
 } // namespace

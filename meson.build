@@ -20,7 +20,7 @@ executable('sloxi', interpreter_sources,
 
 # Tests + test dependencies.
 gtest_dep = dependency('gtest')
-unittest_sources = ['test/main.cpp', 'test/lexer.cpp']
+unittest_sources = ['test/main.cpp', 'test/lexer.cpp', 'test/parser.cpp']
 tests = executable('unittest', unittest_sources,
                    d_unittest: true,
                    install: false,
