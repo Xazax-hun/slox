@@ -6,7 +6,6 @@
 #include <string_view>
 #include <vector>
 #include <optional>
-#include <unordered_map>
 #include <cassert>
 
 #include <include/utils.h>
@@ -100,7 +99,7 @@ struct Token
     using Value = std::variant<std::string, double>;
     Value value;
 
-    Token(TokenType type, int line, Value value = {}) :
+    Token(TokenType type, int line, Value value = {}) noexcept :
         type(type), line(line), value(std::move(value)) {}
 };
 
@@ -112,20 +111,20 @@ public:
     Lexer(std::string source, const DiagnosticEmitter& diag) noexcept
         : source(std::move(source)), diag(diag) {}
 
-    std::optional<std::vector<Token>> lexAll();
+    std::optional<std::vector<Token>> lexAll() noexcept;
 
     int getBracketBalance() const noexcept { return bracketBalance; }
 
 private:
-    std::optional<Token> lex();
-    std::optional<Token> lexString();
-    std::optional<Token> lexNumber();
-    std::optional<Token> lexIdentifier();
-    bool isAtEnd() const { return static_cast<unsigned>(current) >= source.length(); }
-    char advance() { return source[current++]; }
-    char peek() const;
-    char peekNext() const;
-    bool match(char expected);
+    std::optional<Token> lex() noexcept;
+    std::optional<Token> lexString() noexcept;
+    std::optional<Token> lexNumber() noexcept;
+    std::optional<Token> lexIdentifier() noexcept;
+    bool isAtEnd() const noexcept { return static_cast<unsigned>(current) >= source.length(); }
+    char advance() noexcept { return source[current++]; }
+    char peek() const noexcept;
+    char peekNext() const noexcept;
+    bool match(char expected) noexcept;
 
     std::string source;
     const DiagnosticEmitter& diag;
@@ -134,8 +133,6 @@ private:
     int line = 1;
     int bracketBalance = 0;
     bool hasError = false; // TODO: get rid of this.
-
-    static const std::unordered_map<std::string_view, TokenType> keywords;
 };
 
 #endif

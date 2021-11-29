@@ -300,13 +300,13 @@ private:
     struct GetExprNode
     {
         const ASTContext& ctx;
-        auto operator()(Index<Binary> index) const   -> Expression { return &ctx.binaries[index.id]; }
-        auto operator()(Index<Assign> index) const   -> Expression { return &ctx.assignments[index.id]; }
-        auto operator()(Index<Unary> index) const    -> Expression { return &ctx.unaries[index.id]; }
-        auto operator()(Index<Literal> index) const  -> Expression { return &ctx.literals[index.id]; }
-        auto operator()(Index<Grouping> index) const -> Expression { return &ctx.groupings[index.id]; }
-        auto operator()(Index<DeclRef> index) const  -> Expression { return &ctx.declRefs[index.id]; }
-        auto operator()(Index<Call> index) const     -> Expression { return &ctx.calls[index.id]; }
+        auto operator()(Index<Binary> index) const noexcept   -> Expression { return &ctx.binaries[index.id]; }
+        auto operator()(Index<Assign> index) const noexcept   -> Expression { return &ctx.assignments[index.id]; }
+        auto operator()(Index<Unary> index) const noexcept    -> Expression { return &ctx.unaries[index.id]; }
+        auto operator()(Index<Literal> index) const noexcept  -> Expression { return &ctx.literals[index.id]; }
+        auto operator()(Index<Grouping> index) const noexcept -> Expression { return &ctx.groupings[index.id]; }
+        auto operator()(Index<DeclRef> index) const noexcept  -> Expression { return &ctx.declRefs[index.id]; }
+        auto operator()(Index<Call> index) const noexcept     -> Expression { return &ctx.calls[index.id]; }
     } exprNodeGetter{*this};
 
     struct StatementExprNode

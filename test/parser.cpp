@@ -42,189 +42,128 @@ std::optional<ParseResult> parseText(std::string_view sourceText, std::ostream& 
 // of the AST in memory without dumping.
 TEST(Parser, AllNodesParsed)
 {
-    // Comment is ignored.
+
+    auto expectAstForSource = [](std::string_view sourceText, std::string_view astDump)
     {
         std::stringstream output;
-        auto result = parseText("// Foobar", output);
+        auto result = parseText(sourceText, output);
         EXPECT_TRUE(result.has_value());
-        EXPECT_EQ("(unit)", result->dumped);
+        EXPECT_EQ(astDump, result->dumped);
         EXPECT_TRUE(output.str().empty());
-    }
+    };
 
-    // Literals.
+    std::pair<std::string_view, std::string_view> checks[] =
     {
-        std::stringstream output;
-        {
-            auto result = parseText("print 5;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (print 5.000000))", result->dumped);
-        }
+        // Comments are ignored.
+        {"// Foobar", "(unit)"},
 
-        {
-            auto result = parseText("print \"hello\";", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (print \"hello\"))", result->dumped);
-        }
+        // Literals.
+        {"print 5;", "(unit (print 5.000000))"},
+        {"print \"hello\";", "(unit (print \"hello\"))"},
+        {"print true;", "(unit (print true))"},
+        {"print false;", "(unit (print false))"},
+        {"print nil;", "(unit (print nil))"},
 
-        {
-            auto result = parseText("print true;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (print true))", result->dumped);
-        }
+        // Unary operators.
+        {"-a; !b;", "(unit (exprStmt (- a)) (exprStmt (! b)))"},
 
-        {
-            auto result = parseText("print false;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (print false))", result->dumped);
-        }
-
-        {
-            auto result = parseText("print nil;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (print nil))", result->dumped);
-        }
-        EXPECT_TRUE(output.str().empty());
-    }
-
-    // Unary operators.
-    {
-        std::stringstream output;
-        auto result = parseText("-a; !b;", output);
-        EXPECT_TRUE(result.has_value());
-        EXPECT_EQ("(unit (exprStmt (- a)) (exprStmt (! b)))", result->dumped);
-        EXPECT_TRUE(output.str().empty());
-    }
-
-    // Binary operators.
-    {
-        std::stringstream output;
-
+        // Binary operators.
         // Precedence.
-        {
-            auto result = parseText("a + 2 * 3 - 4;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (exprStmt (- (+ a (* 2.000000 3.000000)) 4.000000)))", result->dumped);
-        }
-
+        {"a + 2 * 3 - 4;", "(unit (exprStmt (- (+ a (* 2.000000 3.000000)) 4.000000)))"},
         // Grouping.
-        {
-            auto result = parseText("(a + 2) / (3 - 4);", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (exprStmt (/ (group (+ a 2.000000)) (group (- 3.000000 4.000000)))))", result->dumped);
-        }
-
+        {"(a + 2) / (3 - 4);", "(unit (exprStmt (/ (group (+ a 2.000000)) (group (- 3.000000 4.000000)))))"},
         // Logical.
-        {
-            auto result = parseText("a < b or b > c and a == c;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (exprStmt (or (< a b) (and (> b c) (== a c)))))", result->dumped);
-        }
-
-        {
-            auto result = parseText("a <= b or b >= c and a != c;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (exprStmt (or (<= a b) (and (>= b c) (!= a c)))))", result->dumped);
-        }
-
+        {"a < b or b > c and a == c;", "(unit (exprStmt (or (< a b) (and (> b c) (== a c)))))"},
+        {"a <= b or b >= c and a != c;", "(unit (exprStmt (or (<= a b) (and (>= b c) (!= a c)))))"},
         // Assignment.
-        {
-            auto result = parseText("a = b = c + 1;",output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (exprStmt (= a (= b (+ c 1.000000)))))", result->dumped);
-        }
+        {"a = b = c + 1;", "(unit (exprStmt (= a (= b (+ c 1.000000)))))"},
 
-        EXPECT_TRUE(output.str().empty());
-    }
+        // Function call.
+        {"f(); g(a, b+1, (c));", "(unit (exprStmt (call f)) (exprStmt (call g a (+ b 1.000000) (group c))))"},
 
-    // Function call.
-    {
-        std::stringstream output;
-        auto result = parseText("f(); g(a, b+1, (c));", output);
-        EXPECT_TRUE(result.has_value());
-        EXPECT_EQ("(unit (exprStmt (call f)) (exprStmt (call g a (+ b 1.000000) (group c))))", result->dumped);
-        EXPECT_TRUE(output.str().empty());
-    }
-
-    // Statements.
-    {
-        std::stringstream output;
-
+        // Statements.
         // Expression statements are tested with expressions.
-
         // Variable declaration.
-        {
-            auto result = parseText("var a = 1;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (var a 1.000000))", result->dumped);
-        }
-
-        {
-            auto result = parseText("var b;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (var b <NULL>))", result->dumped);
-        }
-
+        {"var a = 1;", "(unit (var a 1.000000))"},
+        {"var b;", "(unit (var b <NULL>))"},
         // Function declaration and return statement.
-        {
-            auto result = parseText("fun bar() { return 5; }", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (fun bar (body (return 5.000000))))", result->dumped);
-        }
-
-        {
-            auto result = parseText("fun bar(a, b, c) { print a + b * c; }", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (fun bar a b c (body (print (+ a (* b c))))))", result->dumped);
-        }
-
+        {"fun bar() { return 5; }", "(unit (fun bar (body (return 5.000000))))"},
+        {"fun bar(a, b, c) { print a + b * c; }", "(unit (fun bar a b c (body (print (+ a (* b c))))))"},
         // Blocks.
-        {
-            auto result = parseText("var a = 1; { var a = 2; {} }", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (var a 1.000000) (block (var a 2.000000) (block)))", result->dumped);
-        }
-
+        {"var a = 1; { var a = 2; {} }", "(unit (var a 1.000000) (block (var a 2.000000) (block)))"},
         // If.
-        {
-            auto result = parseText("if (a) { a = a + 1; }", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (if a (block (exprStmt (= a (+ a 1.000000)))) <NULL>))", result->dumped);
-        }
-
-        {
-            auto result = parseText("if (a) { a = a + 1; } else a = a - 1;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (if a (block (exprStmt (= a (+ a 1.000000)))) (exprStmt (= a (- a 1.000000)))))", result->dumped);
-        }
-
+        {"if (a) { a = a + 1; }", "(unit (if a (block (exprStmt (= a (+ a 1.000000)))) <NULL>))"},
+        {"if (a) { a = a + 1; } else a = a - 1;", "(unit (if a (block (exprStmt (= a (+ a 1.000000)))) (exprStmt (= a (- a 1.000000)))))"},
         // While.
-        {
-            auto result = parseText("while (a) { a = a + 1; print a; }", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (while a (block (exprStmt (= a (+ a 1.000000))) (print a))))", result->dumped);
-        }
-        
-        {
-            auto result = parseText("while (a > 0) f(a);", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (while (> a 0.000000) (exprStmt (call f a))))", result->dumped);
-        }
-
+        {"while (a) { a = a + 1; print a; }", "(unit (while a (block (exprStmt (= a (+ a 1.000000))) (print a))))"},
+        {"while (a > 0) f(a);", "(unit (while (> a 0.000000) (exprStmt (call f a))))"},
         // For.
         // TODO: add cases where certain elements are missing.
-        {
-            auto result = parseText("for(var a = 1; a < 10; a = a + 1) print a;", output);
-            EXPECT_TRUE(result.has_value());
-            EXPECT_EQ("(unit (block (var a 1.000000) (while (< a 10.000000) (block (print a) (exprStmt (= a (+ a 1.000000)))))))", result->dumped);
-        }
+        {"for(var a = 1; a < 10; a = a + 1) print a;", "(unit (block (var a 1.000000) (while (< a 10.000000) (block (print a) (exprStmt (= a (+ a 1.000000)))))))"},
+    };
 
-        EXPECT_TRUE(output.str().empty());
-    }
+    for (auto [source, astDump] : checks)
+        expectAstForSource(source, astDump);
 }
 
 TEST(Parser, ErrorMessages)
 {
-    // TODO: add dependency injection so it is possible to extract errors.
+    auto expectErrorForSource = [](std::string_view sourceText, std::string_view errorText)
+    {
+        std::stringstream output;
+        parseText(sourceText, output);
+        EXPECT_EQ(errorText , output.str());
+    };
+
+    std::pair<std::string_view, std::string_view> checks[] =
+    {
+        // Function declarations.
+        {"fun 1", "[line 1] Error at '1.000000': Expect function name.\n"},
+        {"fun name other", "[line 1] Error at 'other': Expect '(' after function name.\n"},
+        {"fun name (1", "[line 1] Error at '1.000000': Expect parameter name.\n"},
+        {"fun name (a", "[line 1] Error at end of file: Expect ')' after parameters.\n"},
+        {"fun name (a)", "[line 1] Error at end of file: Expect '{' before function body.\n"},
+
+        // Variable declaration.
+        {"var 1", "[line 1] Error at '1.000000': Expect variable name.\n"},
+        {"var a", "[line 1] Error at end of file: Expect ';' after variable declaration.\n"},
+        {"var a = 1", "[line 1] Error at end of file: Expect ';' after variable declaration.\n"},
+
+        // For statement.
+        // TODO: optional loop conditon.
+        {"for", "[line 1] Error at end of file: Expect '(' after for.\n"},
+        {"for(x; x > 0", "[line 1] Error at end of file: Expect ';' after loop condition.\n"},
+        {"for(x; x > 0; x = x - 1", "[line 1] Error at end of file: Expect ')' after for caluses.\n"},
+
+        // If statement.
+        {"if x", "[line 1] Error at 'x': Expect '(' after if.\n"},
+        {"if (x", "[line 1] Error at end of file: Expect ')' after if condition.\n"},
+
+        // Expression statement.
+        {"x", "[line 1] Error at end of file: Expect ';' after value.\n"},
+
+        // Return statement.
+        {"return x", "[line 1] Error at end of file: Expect ';' after return value.\n"},
+
+        // While statement.
+        {"while", "[line 1] Error at end of file: Expect '(' after while.\n"},
+        {"while (x", "[line 1] Error at end of file: Expect ')' after while condition.\n"},
+
+        // Block statement.
+        {"{ x; ", "[line 1] Error at end of file: Expect '}' after block.\n"},
+
+        // Assignment.
+        {"1 = x; ", "[line 1] Error at '=': Invalid assignment target\n"},
+
+        // Grouping.
+        {"(x or y; ", "[line 1] Error at ';': Expect ')' after expression\n"},
+
+        // Call.
+        {"f(a, b, c; ", "[line 1] Error at ';': Expect ')' after arguments.\n"},
+    };
+
+    for (auto [source, error] : checks)
+        expectErrorForSource(source, error);
 }
 
 TEST(Parser, ErrorRecovery)

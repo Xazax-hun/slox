@@ -1,5 +1,7 @@
 # slox
-An implementation of Lox (from crafting interpreters) using sum types
+An implementation of Lox (from crafting interpreters) using sum types. 
+Some (most?) implementation details diverge from the book. The main role
+of this project is to experiment with implementation techniques.
 
 # Dependencies
 

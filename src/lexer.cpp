@@ -1,8 +1,10 @@
 #include <include/lexer.h>
 #include <include/utils.h>
+
 #include <fmt/format.h>
 
 #include <cstdlib>
+#include <unordered_map>
 
 using enum TokenType;
 
@@ -23,7 +25,7 @@ std::string print(const Token& t) noexcept
     }
 }
 
-std::optional<std::vector<Token>> Lexer::lexAll()
+std::optional<std::vector<Token>> Lexer::lexAll() noexcept
 {
     std::vector<Token> result;
     while (!isAtEnd())
@@ -38,7 +40,7 @@ std::optional<std::vector<Token>> Lexer::lexAll()
     return result;
 }
 
-std::optional<Token> Lexer::lex()
+std::optional<Token> Lexer::lex() noexcept
 {
     while (true)
     {
@@ -123,7 +125,7 @@ std::optional<Token> Lexer::lex()
     }
 }
 
-std::optional<Token> Lexer::lexString()
+std::optional<Token> Lexer::lexString() noexcept
 {
     std::string content;
     bool escaping = false;
@@ -184,7 +186,7 @@ std::optional<Token> Lexer::lexString()
     return Token(STRING, line, content);
 }
 
-std::optional<Token> Lexer::lexNumber()
+std::optional<Token> Lexer::lexNumber() noexcept
 {
     while (isdigit(peek()))
         advance();
@@ -204,44 +206,8 @@ std::optional<Token> Lexer::lexNumber()
     return Token(NUMBER, line, value);
 }
 
-std::optional<Token> Lexer::lexIdentifier()
-{
-    while (isalnum(peek()))
-        advance();
-
-    auto text = source.substr(start, current - start);
-    if (auto it = keywords.find(text); it != keywords.end())
-        return Token(it->second, line);
-
-    return Token(IDENTIFIER, line, text);
-}
-
-bool Lexer::match(char expected)
-{
-    if (isAtEnd())
-        return false;
-    if (source[current] != expected)
-        return false;
-
-    current++;
-    return true;
-}
-
-char Lexer::peek() const
-{
-    if (isAtEnd())
-        return '\0';
-    return source[current];
-}
-
-char Lexer::peekNext() const
-{
-    if (static_cast<unsigned>(current + 1) >= source.length())
-        return '\0';
-    return source[current + 1];
-}
-
-const std::unordered_map<std::string_view, TokenType> Lexer::keywords = {
+namespace {
+const std::unordered_map<std::string_view, TokenType> keywords = {
     {tokenTypeToSourceName(AND),    AND},
     {tokenTypeToSourceName(CLASS),  CLASS},
     {tokenTypeToSourceName(ELSE),   ELSE},
@@ -259,3 +225,41 @@ const std::unordered_map<std::string_view, TokenType> Lexer::keywords = {
     {tokenTypeToSourceName(VAR),    VAR},
     {tokenTypeToSourceName(WHILE),  WHILE}
 };
+} // anonymous namespace
+
+std::optional<Token> Lexer::lexIdentifier() noexcept
+{
+    while (isalnum(peek()))
+        advance();
+
+    auto text = source.substr(start, current - start);
+    if (auto it = keywords.find(text); it != keywords.end())
+        return Token(it->second, line);
+
+    return Token(IDENTIFIER, line, text);
+}
+
+bool Lexer::match(char expected) noexcept
+{
+    if (isAtEnd())
+        return false;
+    if (source[current] != expected)
+        return false;
+
+    current++;
+    return true;
+}
+
+char Lexer::peek() const noexcept
+{
+    if (isAtEnd())
+        return '\0';
+    return source[current];
+}
+
+char Lexer::peekNext() const noexcept
+{
+    if (static_cast<unsigned>(current + 1) >= source.length())
+        return '\0';
+    return source[current + 1];
+}

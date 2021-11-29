@@ -13,6 +13,11 @@
   if (!y) return std::nullopt;     \
   auto var = *y
 
+#define MUST_SUCCEED(x)  MUST_SUCCEED_IMPL(x, CONCAT(__val, __COUNTER__))
+#define MUST_SUCCEED_IMPL(x, y)       \
+  auto y = (x);                       \
+  if (!y) return std::nullopt; 
+
 using enum TokenType;
 
 void Parser::addTokens(std::vector<Token> tokens)
@@ -50,7 +55,7 @@ std::optional<StatementIndex> Parser::declaration()
 std::optional<Index<FunDecl>> Parser::funDeclaration()
 {
     BIND(name, consume(IDENTIFIER, "Expect function name."));
-    consume(LEFT_PAREN, "Expect '(' after function name.");
+    MUST_SUCCEED(consume(LEFT_PAREN, "Expect '(' after function name."));
     std::vector<Index<Token>> params;
     if (!check(RIGHT_PAREN))
     {
@@ -66,9 +71,9 @@ std::optional<Index<FunDecl>> Parser::funDeclaration()
             return std::nullopt;
         }
     }
-    consume(RIGHT_PAREN, "Expect ')' after parameters.");
+    MUST_SUCCEED(consume(RIGHT_PAREN, "Expect ')' after parameters."));
 
-    consume(LEFT_BRACE, "Expect '{' before function body.");
+    MUST_SUCCEED(consume(LEFT_BRACE, "Expect '{' before function body."));
     BIND(body, statementList());
 
     return context.makeFunDecl(name, params, body);
@@ -105,7 +110,7 @@ std::optional<StatementIndex> Parser::statement()
 // Desugaring into while.
 std::optional<Index<Block>> Parser::forStatement()
 {
-    consume(LEFT_PAREN, "Expect '(' after for.");
+    MUST_SUCCEED(consume(LEFT_PAREN, "Expect '(' after for."));
 
     std::optional<StatementIndex> init;
     if (!match(SEMICOLON))
@@ -133,8 +138,9 @@ std::optional<Index<Block>> Parser::forStatement()
     {
         // TODO: make it optional! 
         error(peek(), "Loop condition is not optional.");
+        return std::nullopt;
     }
-    consume(SEMICOLON, "Expect ';' after loop condition.");
+    MUST_SUCCEED(consume(SEMICOLON, "Expect ';' after loop condition."));
 
 
     std::optional<ExpressionIndex> incr;
@@ -143,7 +149,7 @@ std::optional<Index<Block>> Parser::forStatement()
         BIND(i, expression());
         incr = i;
     }
-    consume(RIGHT_PAREN, "Expect ')' after for caluses.");
+    MUST_SUCCEED(consume(RIGHT_PAREN, "Expect ')' after for caluses."));
 
     BIND(body, statement());
 
@@ -158,9 +164,9 @@ std::optional<Index<Block>> Parser::forStatement()
 
 std::optional<Index<IfStatement>> Parser::ifStatement()
 {
-    consume(LEFT_PAREN, "Expect '(' after if.");
+    MUST_SUCCEED(consume(LEFT_PAREN, "Expect '(' after if."));
     BIND(condition, expression());
-    consume(RIGHT_PAREN, "Expect ')' after if condition.");
+    MUST_SUCCEED(consume(RIGHT_PAREN, "Expect ')' after if condition."));
 
     BIND(thenBranch, statement());
     std::optional<StatementIndex> elseBranch;
@@ -197,9 +203,9 @@ std::optional<Index<Return>> Parser::returnStatement()
 
 std::optional<Index<WhileStatement>> Parser::whileStatement()
 {
-    consume(LEFT_PAREN, "Expect '(' after while.");
+    MUST_SUCCEED(consume(LEFT_PAREN, "Expect '(' after while."));
     BIND(condition, expression());
-    consume(RIGHT_PAREN, "Expect ')' after while condition.");
+    MUST_SUCCEED(consume(RIGHT_PAREN, "Expect ')' after while condition."));
 
     BIND(body, statement());
 
@@ -257,6 +263,7 @@ std::optional<ExpressionIndex> Parser::assignment()
         }
 
         error(equals, "Invalid assignment target");
+        return std::nullopt;
     }
 
     return expr;
@@ -395,7 +402,7 @@ std::optional<ExpressionIndex> Parser::primary()
     {
         Index<Token> begin = previous();
         BIND(expr, expression());
-        consume(RIGHT_PAREN, "Expect ')' after expression");
+        MUST_SUCCEED(consume(RIGHT_PAREN, "Expect ')' after expression"));
         Index<Token> end = previous();
         return context.makeGrouping(begin, expr, end);
     }
@@ -462,10 +469,10 @@ void Parser::error(Index<Token> tIdx, std::string message) noexcept
     const Token& t = context.getToken(tIdx);
     if (t.type == END_OF_FILE)
     {
-        diag.report(t.line, " at end", std::move(message));
+        diag.report(t.line, "at end of file", std::move(message));
     }
     else
     {
-        diag.report(t.line, fmt::format(" at '{}'", print(t)), std::move(message));
+        diag.report(t.line, fmt::format("at '{}'", print(t)), std::move(message));
     }
 }
