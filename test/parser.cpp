@@ -10,8 +10,6 @@
 
 namespace
 {
-using enum TokenType;
-
 struct ParseResult
 {
     Index<Unit> unit;

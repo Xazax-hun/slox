@@ -271,7 +271,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Call* c) const
 void Interpreter::StmtEvalVisitor::operator()(const PrintStatement* s) const
 {
     RuntimeValue value = i.eval(s->subExpr);
-    fmt::print("{}\n", print(value));
+    i.diag.getOutput() << print(value) << '\n';
 }
 
 void Interpreter::StmtEvalVisitor::operator()(const ExprStatement* s) const

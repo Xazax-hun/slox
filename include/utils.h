@@ -16,6 +16,8 @@ public:
 
     void error(int line, std::string message) const noexcept;
     void report(int line, std::string where, std::string message) const noexcept;
+
+    std::ostream& getOutput() const { return out; }
 private:
     std::ostream& out;
     std::ostream& err;
