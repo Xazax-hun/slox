@@ -102,6 +102,8 @@ TEST(Parser, AllNodesParsed)
 
     for (auto [source, astDump] : checks)
         expectAstForSource(source, astDump);
+
+    // TODO: redo the tests in incremental mode.
 }
 
 TEST(Parser, ErrorMessages)

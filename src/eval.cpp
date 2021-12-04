@@ -96,6 +96,8 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Literal* l) const
             return true;
         case FALSE:
             return false;
+        case NIL:
+            return Nil{};
         default:
             break;
     }
