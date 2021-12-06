@@ -70,7 +70,7 @@ TEST(Eval, BasicNodes)
         // Statements.
         {"if (true) print 1.0;", "1.0\n"},
         {"if (false) print 1.0;", ""},
-        {"if (false) print 1.0; print 2.0;", "2.0\n"},
+        {"if (nil) print 1.0; print 2.0;", "2.0\n"},
         {"if (false) { print 1.0; print 2.0; }", ""},
         {"if (false) nil; else print 1.0;", "1.0\n"},
         {"var a = 3; while (a > 0) { print a; a = a - 1; }", "3.0\n2.0\n1.0\n"},

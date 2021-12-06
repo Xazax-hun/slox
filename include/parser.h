@@ -11,7 +11,7 @@
 class Parser
 {
 public:
-    Parser(const DiagnosticEmitter& diag) noexcept : diag(diag) {}
+    explicit Parser(const DiagnosticEmitter& diag) noexcept : diag(diag) {}
 
     // Reentrant. Invoking again will continue parsing with the tokens
     // added since the last invocation.

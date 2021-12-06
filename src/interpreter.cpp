@@ -39,7 +39,7 @@ bool runSource(std::string sourceText, bool dumpAst)
 bool runSource(std::string sourceText, std::ostream& out, std::ostream& err, bool dumpAst)
 {
     DiagnosticEmitter emitter(out, err);
-    Lexer lexer(sourceText, emitter);
+    Lexer lexer(std::move(sourceText), emitter);
     auto maybeTokens = lexer.lexAll();
     if (!maybeTokens)
         return false;
@@ -57,10 +57,7 @@ bool runSource(std::string sourceText, std::ostream& out, std::ostream& err, boo
     }
 
     Interpreter interpreter(parser.getContext(), emitter);
-    if (!interpreter.evaluate(*maybeAst))
-        return false;
-
-    return true;
+    return interpreter.evaluate(*maybeAst);
 }
 
 namespace

@@ -27,7 +27,7 @@ int main(int argc, const char* argv[])
                 dumpAst = true;
                 continue;
             }
-            else if (argv[i] == "--help"sv)
+            if (argv[i] == "--help"sv)
             {
                 printHelp();
                 return EXIT_SUCCESS;
@@ -48,6 +48,6 @@ int main(int argc, const char* argv[])
 
     if (file)
         return runFile(file, dumpAst) ? EXIT_SUCCESS : EXIT_FAILURE;
-    else
-        return runPrompt(dumpAst) ? EXIT_SUCCESS : EXIT_FAILURE;
+
+    return runPrompt(dumpAst) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

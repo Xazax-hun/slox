@@ -85,7 +85,7 @@ using Resolution = std::unordered_map<ExpressionIndex, int>;
 class Environment
 {
 public:
-    Environment(Environment* enclosing = nullptr) noexcept : enclosing(enclosing) {}
+    explicit Environment(Environment* enclosing = nullptr) noexcept : enclosing(enclosing) {}
 
     void define(const std::string& name, const RuntimeValue& value) noexcept
     {
@@ -124,7 +124,7 @@ public:
 private:
     Environment* ancestor(int distance) const noexcept
     {
-        Environment* result = const_cast<Environment*>(this);
+        auto* result = const_cast<Environment*>(this);
         while(distance-- > 0)
             result = result->enclosing;
         
@@ -141,7 +141,7 @@ private:
 class Interpreter
 {
 public:
-    Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, Environment env = {});
+    Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, Environment env = Environment{});
 
     bool evaluate(StatementIndex stmt);
 
@@ -150,7 +150,7 @@ public:
     Environment& getCurrentEnv() noexcept { return stack.empty() ? getGlobalEnv() : *stack.back(); }
 private:
     RuntimeValue eval(ExpressionIndex expr);
-    void eval(StatementIndex expr);
+    void eval(StatementIndex stmt);
 
     static bool isTruthy(const RuntimeValue& val);
     static void checkNumberOperand(const RuntimeValue& val, Index<Token> token);
@@ -177,7 +177,7 @@ private:
         RuntimeValue operator()(const Assign* a) const;
         RuntimeValue operator()(const Unary* u) const;
         RuntimeValue operator()(const Literal* l) const;
-        RuntimeValue operator()(const Grouping* l) const;
+        RuntimeValue operator()(const Grouping* g) const;
         RuntimeValue operator()(const DeclRef* r) const;
         RuntimeValue operator()(const Call* c) const;
     } exprVisitor{*this};

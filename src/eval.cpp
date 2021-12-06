@@ -61,10 +61,7 @@ bool Interpreter::isTruthy(const RuntimeValue& val)
     if (auto boolVal = std::get_if<bool>(&val))
         return *boolVal;
 
-    if (std::get_if<Nil>(&val))
-        return false;
-    
-    return true;
+    return !std::get_if<Nil>(&val);
 }
 
 void Interpreter::checkNumberOperand(const RuntimeValue& val, Index<Token> token)
@@ -139,7 +136,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
             return left;
         return i.eval(b->right);
     }
-    else if (type == AND)
+    if (type == AND)
     {
         if (!isTruthy(left))
             return left;

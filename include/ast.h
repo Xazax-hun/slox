@@ -335,7 +335,7 @@ private:
 class ASTPrinter
 {
 public:
-    ASTPrinter(const ASTContext& c) noexcept : c(c) {}
+    explicit ASTPrinter(const ASTContext& c) noexcept : c(c) {}
     std::string print(ExpressionIndex e) const noexcept;
     std::string print(StatementIndex e) const noexcept;
 
@@ -349,7 +349,7 @@ private:
         std::string operator()(const Unary* u) const noexcept;
         std::string operator()(const Literal* l) const noexcept;
         std::string operator()(const Grouping* l) const noexcept;
-        std::string operator()(const DeclRef* l) const noexcept;
+        std::string operator()(const DeclRef* r) const noexcept;
         std::string operator()(const Call* c) const noexcept;
     } exprVisitor{*this};
 
