@@ -112,15 +112,15 @@ TEST(Parser, AllNodesParsed)
     // TODO: redo the tests in incremental mode.
 }
 
+void expectErrorForSource(std::string_view sourceText, std::string_view errorText)
+{
+    std::stringstream output;
+    parseText(sourceText, output);
+    EXPECT_EQ(errorText , output.str());
+};
+
 TEST(Parser, ErrorMessages)
 {
-    auto expectErrorForSource = [](std::string_view sourceText, std::string_view errorText)
-    {
-        std::stringstream output;
-        parseText(sourceText, output);
-        EXPECT_EQ(errorText , output.str());
-    };
-
     std::pair<std::string_view, std::string_view> checks[] =
     {
         // Function declarations.
@@ -174,7 +174,16 @@ TEST(Parser, ErrorMessages)
 
 TEST(Parser, ErrorRecovery)
 {
-    // TODO
+    // TODO: Add more tests
+    std::pair<std::string_view, std::string_view> checks[] =
+    {
+        {"var a = .; 1 = a; var b = 4", "[line 1] Error at '.': Unexpected token.\n"
+                                        "[line 1] Error at '=': Invalid assignment target\n"
+                                        "[line 1] Error at end of file: Expect ';' after variable declaration.\n"},
+    };
+
+    for (auto [source, error] : checks)
+        expectErrorForSource(source, error);
 }
 
 } // anonymous namespace

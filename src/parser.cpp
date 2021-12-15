@@ -45,13 +45,28 @@ std::optional<Index<Unit>> Parser::parse()
 
 std::optional<StatementIndex> Parser::declaration()
 {
-    // TODO: synchronize.
+    std::optional<StatementIndex> result;
     if (match(FUN))
-        return funDeclaration();
-    if (match(VAR))
-        return varDeclaration();
+        result = funDeclaration();
+    else if (match(VAR))
+        result = varDeclaration();
+    else
+        result = statement();
 
-    return statement();
+    if (!result)
+    {
+        // Skip to the next statement.
+        synchronize();
+        if (isAtEnd())
+            return std::nullopt;
+        // Continue parsing if there is code left.
+        declaration();
+        // Make sure we fail the parser.
+        // TODO: can we do this iteratively?
+        return std::nullopt;
+    }
+
+    return result;
 }
 
 // TODO: support methods.
