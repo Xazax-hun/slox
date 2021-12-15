@@ -100,6 +100,19 @@ TEST(Eval, BasicNodes)
     EXPECT_EQ(std::move(output).str(), allExpectedOutput);
 }
 
+TEST(Eval, StaticErrors)
+{
+    std::pair<std::string_view, std::string_view> checks[] =
+    {
+        {"return;", "[line 1] Error : Can't return from top level code\n"},
+        {"fun f() { var a = 1; var a = 1; }", "[line 1] Error : Already a variable with name 'a' in this scope.\n"},
+        {"fun f() { var a = a; }", "[line 1] Error : Can't read local variable in its own initializer.\n"},
+    };
+
+    for (auto check : checks)
+        checkOutputOfCode(check.first, check.second);
+}
+
 TEST(Eval, RuntimeErrors)
 {
     std::pair<std::string_view, std::string_view> checks[] =
@@ -120,7 +133,6 @@ TEST(Eval, RuntimeErrors)
 
     for (auto check : checks)
         checkOutputOfCode(check.first, check.second);
-
 }
 
 TEST(Eval, Scoping)
