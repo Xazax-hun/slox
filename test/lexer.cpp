@@ -9,11 +9,16 @@ namespace
 {
 using enum TokenType;
 
-auto lexString (std::string s, std::ostream& output)
+std::optional<TokenList> lexString(std::string s, std::ostream& output)
 {
     DiagnosticEmitter emitter(output, output);
     Lexer lexer(std::move(s), emitter);
-    return lexer.lexAll();
+    auto tokList = lexer.lexAll();
+    if (!tokList)
+        return std::nullopt;
+
+    // Skip synthetic tokens.
+    return tokList;
 }
 
 TEST(Lexer, TestAllTokens)
@@ -21,21 +26,21 @@ TEST(Lexer, TestAllTokens)
     // Tokens with values.
     {
         std::stringstream output;
-        auto token = lexString("identName", output)->front();
+        auto token = lexString("identName", output)->getSourceTokens().front();
         EXPECT_EQ(IDENTIFIER, token.type);
         EXPECT_EQ("identName", std::get<std::string>(token.value));
         EXPECT_TRUE(output.str().empty());
     }
     {
         std::stringstream output;
-        auto token = lexString("\"literal\"", output)->front();
+        auto token = lexString("\"literal\"", output)->getSourceTokens().front();
         EXPECT_EQ(STRING, token.type);
         EXPECT_EQ("literal", std::get<std::string>(token.value));
         EXPECT_TRUE(output.str().empty());
     }
     {
         std::stringstream output;
-        auto token = lexString("0.0", output)->front();
+        auto token = lexString("0.0", output)->getSourceTokens().front();
         EXPECT_EQ(NUMBER, token.type);
         EXPECT_EQ(0.0, std::get<double>(token.value));
         EXPECT_TRUE(output.str().empty());
@@ -46,10 +51,11 @@ TEST(Lexer, TestAllTokens)
         std::stringstream output;
         auto tokenList = lexString("and class else false fun for if nil or"
                                    " print return super this true var while", output).value();
+        auto sourceTokens = tokenList.getSourceTokens();
         TokenType tokenTypes[] = {AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL,
                                   OR, PRINT, RET, SUPER, THIS, TRUE, VAR, WHILE,
                                   END_OF_FILE};
-        EXPECT_TRUE(std::equal(tokenList.begin(), tokenList.end(), std::begin(tokenTypes), std::end(tokenTypes),
+        EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
                     [](Token t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
@@ -58,11 +64,12 @@ TEST(Lexer, TestAllTokens)
     {
         std::stringstream output;
         auto tokenList = lexString("() {} ,.-+; / * ! != = == > >= < <=", output).value();
+        auto sourceTokens = tokenList.getSourceTokens();
         TokenType tokenTypes[] = {
             LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, COMMA, DOT, MINUS, PLUS, SEMICOLON,
             SLASH, STAR, BANG, BANG_EQUAL, EQUAL, EQUAL_EQUAL, GREATER, GREATER_EQUAL,
             LESS, LESS_EQUAL, END_OF_FILE};
-        EXPECT_TRUE(std::equal(tokenList.begin(), tokenList.end(), std::begin(tokenTypes), std::end(tokenTypes),
+        EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
                     [](Token t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
@@ -74,28 +81,34 @@ TEST(Lexer, Comments)
     {
         std::stringstream output;
         auto tokenList = lexString("", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        auto sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
 
         tokenList = lexString("\n", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
 
         tokenList = lexString("\r\t\n\r\t   \n", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
 
         tokenList = lexString("// A comment only.", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
 
         tokenList = lexString("// A comment only.\n", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
 
         tokenList = lexString("\n\t // A comment only.\n", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(END_OF_FILE, tokenList.front().type);
+        sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(END_OF_FILE, sourceTokens.front().type);
         EXPECT_TRUE(output.str().empty());
     }
 
@@ -103,8 +116,9 @@ TEST(Lexer, Comments)
     {
         std::stringstream output;
         auto tokenList = lexString("and // 0.4 ( } class \"\n else", output).value();
+        auto sourceTokens = tokenList.getSourceTokens();
         TokenType tokenTypes[] = {AND, ELSE, END_OF_FILE};
-        EXPECT_TRUE(std::equal(tokenList.begin(), tokenList.end(), std::begin(tokenTypes), std::end(tokenTypes),
+        EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
                     [](Token t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
@@ -116,8 +130,9 @@ TEST(Lexer, LineNumbers)
     {
         std::stringstream output;
         auto tokenList = lexString("", output).value();
-        EXPECT_EQ(1, tokenList.size());
-        EXPECT_EQ(1, tokenList.front().line);
+        auto sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(1, sourceTokens.size());
+        EXPECT_EQ(1, sourceTokens.front().line);
         EXPECT_TRUE(output.str().empty());
     }
 
@@ -125,9 +140,10 @@ TEST(Lexer, LineNumbers)
     {
         std::stringstream output;
         auto tokenList = lexString("\nand\nor\n", output).value();
-        EXPECT_EQ(3, tokenList.size());
-        EXPECT_EQ(2, tokenList.front().line);
-        EXPECT_EQ(4, tokenList.back().line);
+        auto sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(3, sourceTokens.size());
+        EXPECT_EQ(2, sourceTokens.front().line);
+        EXPECT_EQ(4, sourceTokens.back().line);
         EXPECT_TRUE(output.str().empty());
     }
 
@@ -135,8 +151,9 @@ TEST(Lexer, LineNumbers)
     {
         std::stringstream output;
         auto tokenList = lexString("\"fooo\nbaar\n\"\n", output).value();
-        EXPECT_EQ(2, tokenList.size());
-        EXPECT_EQ(4, tokenList.back().line);
+        auto sourceTokens = tokenList.getSourceTokens();
+        EXPECT_EQ(2, sourceTokens.size());
+        EXPECT_EQ(4, sourceTokens.back().line);
         EXPECT_TRUE(output.str().empty());
     }
 }
@@ -145,8 +162,9 @@ TEST(Lexer, Escaping)
 {
     std::stringstream output;
     auto tokenList = lexString(R"("Hello\t\"world!\"\n")", output).value();
-    EXPECT_EQ(2, tokenList.size());
-    EXPECT_EQ("Hello\t\"world!\"\n", std::get<std::string>(tokenList.front().value));
+    auto sourceTokens = tokenList.getSourceTokens();
+    EXPECT_EQ(2, sourceTokens.size());
+    EXPECT_EQ("Hello\t\"world!\"\n", std::get<std::string>(sourceTokens.front().value));
     EXPECT_TRUE(output.str().empty());
 }
 

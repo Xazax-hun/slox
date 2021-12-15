@@ -25,9 +25,33 @@ std::string print(const Token& t) noexcept
     }
 }
 
-std::optional<std::vector<Token>> Lexer::lexAll() noexcept
+TokenList::TokenList() noexcept : firstNonSynthetic(1)
 {
-    std::vector<Token> result;
+    // True token to support synthesizing while statements from
+    // for expressions with empty condition.
+    tokens.emplace_back(TRUE, -1);
+}
+
+void TokenList::mergeTokensFrom(TokenList&& other) noexcept
+{
+    // Get rid if the now incorrect end of file token.
+    if (!tokens.empty())
+        tokens.pop_back();
+
+    auto firstTokenFromSourceIt = other.tokens.begin();
+    
+    // We only need to add the synthetic tokens once.
+    if (!tokens.empty())
+        firstTokenFromSourceIt += firstNonSynthetic;
+
+    tokens.insert(tokens.end(), std::make_move_iterator(firstTokenFromSourceIt),
+                  std::make_move_iterator(other.tokens.end()));
+}
+
+std::optional<TokenList> Lexer::lexAll() noexcept
+{
+    TokenList result;
+
     while (!isAtEnd())
     {
         if (auto maybeToken = lex(); maybeToken.has_value())
@@ -92,6 +116,7 @@ std::optional<Token> Lexer::lex() noexcept
                     advance();
                 break;
             }
+            // TODO: support /* */ style comments.
             
             return Token(SLASH, line);
 

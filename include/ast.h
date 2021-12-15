@@ -264,14 +264,14 @@ public:
         return tokens[idx.id];
     }
 
-    void addTokens(std::vector<Token>&& newTokens) noexcept
+    const TokenList& getTokenList() const noexcept
     {
-        // Get rid if the now incorrect end of file token.
-        if (!tokens.empty())
-            tokens.pop_back();
+        return tokens;
+    }
 
-        tokens.insert(tokens.end(), std::make_move_iterator(newTokens.begin()),
-                      std::make_move_iterator(newTokens.end()));
+    void addTokens(TokenList&& newTokens) noexcept
+    {
+        tokens.mergeTokensFrom(std::move(newTokens));
     }
 
 private:
@@ -295,7 +295,7 @@ private:
     std::vector<WhileStatement>   whiles;
     std::vector<Unit>             units;
 
-    std::vector<Token>            tokens;
+    TokenList                     tokens;
 
     struct GetExprNode
     {

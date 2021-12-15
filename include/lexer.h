@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <span>
 #include <optional>
 #include <cassert>
 
@@ -105,13 +106,42 @@ struct Token
 
 std::string print(const Token&) noexcept;
 
+// To create certain constructs we might need to synthesize
+// tokens that are not written in the source code. This 
+// struct also contains the first index that corresponds
+// to a token that is originated from the source.
+class TokenList
+{
+public:
+    TokenList() noexcept;
+
+    Token& push_back(const Token& t) noexcept { tokens.push_back(t); return tokens.back(); }
+
+    template<typename... T>
+    Token& emplace_back(T&&... args) noexcept { return tokens.emplace_back(std::forward<T>(args)...); }
+
+    Token& operator[](unsigned i) noexcept { return tokens[i]; }
+    const Token& operator[](unsigned i) const noexcept { return tokens[i]; }
+
+    std::span<Token> getSourceTokens() noexcept { return {tokens.begin() + firstNonSynthetic, tokens.end()}; }
+
+    unsigned getFirstSourceTokenIdx() const noexcept { return firstNonSynthetic; }
+    unsigned getSyntheticTrueIdx() const noexcept { return 0; }
+
+    void mergeTokensFrom(TokenList&& other) noexcept;
+
+private:
+    std::vector<Token> tokens;
+    int firstNonSynthetic;
+};
+
 class Lexer
 {
 public:
     Lexer(std::string source, const DiagnosticEmitter& diag) noexcept
         : source(std::move(source)), diag(diag) {}
 
-    std::optional<std::vector<Token>> lexAll() noexcept;
+    std::optional<TokenList> lexAll() noexcept;
 
     int getBracketBalance() const noexcept { return bracketBalance; }
 

@@ -96,8 +96,14 @@ TEST(Parser, AllNodesParsed)
         {"while (a) { a = a + 1; print a; }", "(unit (while a (block (exprStmt (= a (+ a 1.000000))) (print a))))"},
         {"while (a > 0) f(a);", "(unit (while (> a 0.000000) (exprStmt (call f a))))"},
         // For.
-        // TODO: add cases where certain elements are missing.
         {"for(var a = 1; a < 10; a = a + 1) print a;", "(unit (block (var a 1.000000) (while (< a 10.000000) (block (print a) (exprStmt (= a (+ a 1.000000)))))))"},
+        {"for(; a < 10; a = a + 1) print a;", "(unit (while (< a 10.000000) (block (print a) (exprStmt (= a (+ a 1.000000))))))"},
+        {"for(var a = 1;; a = a + 1) print a;", "(unit (block (var a 1.000000) (while true (block (print a) (exprStmt (= a (+ a 1.000000)))))))"},
+        {"for(var a = 1; a < 10;) print a;", "(unit (block (var a 1.000000) (while (< a 10.000000) (print a))))"},
+        {"for(var a = 1;;) print a;", "(unit (block (var a 1.000000) (while true (print a))))"},
+        {"for(; a < 10;) print a;", "(unit (while (< a 10.000000) (print a)))"},
+        {"for(;; a = a + 1) print a;", "(unit (while true (block (print a) (exprStmt (= a (+ a 1.000000))))))"},
+        {"for(;;) print 5;", "(unit (while true (print 5.000000)))"},
     };
 
     for (auto [source, astDump] : checks)
@@ -130,8 +136,8 @@ TEST(Parser, ErrorMessages)
         {"var a = 1", "[line 1] Error at end of file: Expect ';' after variable declaration.\n"},
 
         // For statement.
-        // TODO: optional loop conditon.
         {"for", "[line 1] Error at end of file: Expect '(' after for.\n"},
+        {"for(x;", "[line 1] Error at end of file: Unexpected token.\n"},
         {"for(x; x > 0", "[line 1] Error at end of file: Expect ';' after loop condition.\n"},
         {"for(x; x > 0; x = x - 1", "[line 1] Error at end of file: Expect ')' after for caluses.\n"},
 

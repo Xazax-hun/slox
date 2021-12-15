@@ -18,7 +18,7 @@ public:
     std::optional<Index<Unit>> parse();
 
     // Add the tokens without continuing the parsing.
-    void addTokens(std::vector<Token> tokens);
+    void addTokens(TokenList tokens);
 
     const ASTContext& getContext() const { return context; }
 
@@ -28,7 +28,7 @@ private:
     std::optional<Index<FunDecl>> funDeclaration();
     std::optional<Index<VarDecl>> varDeclaration();
     std::optional<StatementIndex> statement();
-    std::optional<Index<Block>> forStatement();
+    std::optional<StatementIndex> forStatement();
     std::optional<Index<IfStatement>> ifStatement();
     std::optional<Index<PrintStatement>> printStatement();
     std::optional<Index<Return>> returnStatement();

@@ -20,9 +20,12 @@
 
 using enum TokenType;
 
-void Parser::addTokens(std::vector<Token> tokens)
+void Parser::addTokens(TokenList tokens)
 {
     context.addTokens(std::move(tokens));
+
+    if (current == 0)
+        current = tokens.getFirstSourceTokenIdx();
 }
 
 // Entry point to parsing.
@@ -108,7 +111,7 @@ std::optional<StatementIndex> Parser::statement()
 }
 
 // Desugaring into while.
-std::optional<Index<Block>> Parser::forStatement()
+std::optional<StatementIndex> Parser::forStatement()
 {
     MUST_SUCCEED(consume(LEFT_PAREN, "Expect '(' after for."));
 
@@ -134,12 +137,6 @@ std::optional<Index<Block>> Parser::forStatement()
         BIND(c, expression());
         cond = c;
     }
-    else
-    {
-        // TODO: make it optional! 
-        error(peek(), "Loop condition is not optional.");
-        return std::nullopt;
-    }
     MUST_SUCCEED(consume(SEMICOLON, "Expect ';' after loop condition."));
 
 
@@ -156,8 +153,16 @@ std::optional<Index<Block>> Parser::forStatement()
     if (incr)
         body = context.makeBlock({body, context.makeExprStmt(*incr)});
 
-    // TODO: create a true condition if it is omitted.
+    // Empty condition is desugared into a synthesized true literal.
+    if (!cond)
+    {
+        auto trueIdx = context.getTokenList().getSyntheticTrueIdx();
+        cond = context.makeLiteral(Index<Token>{trueIdx});
+    }
     body = context.makeWhile(*cond, body);
+
+    if (!init)
+        return body;
 
     return context.makeBlock({*init, body});
 }
