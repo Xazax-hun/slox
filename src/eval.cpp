@@ -195,7 +195,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
             break;
     }
 
-    throw RuntimeError{b->op, "Unexpected value."};
+    throw RuntimeError{b->op, "Unexpected binary operator."};
 }
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Assign* a) const
@@ -240,7 +240,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const DeclRef* r) const
             return *val;
     }
 
-    throw RuntimeError{r->name, "Undefined variable."};
+    throw RuntimeError{r->name, fmt::format("Undefined variable: '{}'.", name)};
 }
 
 RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Call* c) const
