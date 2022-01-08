@@ -85,16 +85,16 @@ private:
         return previous();
     }
 
-    std::optional<Index<Token>> consume(TokenType type, std::string message) noexcept
+    std::optional<Index<Token>> consume(TokenType type, std::string_view message) noexcept
     {
         if (check(type))
             return advance();
 
-        error(peek(), std::move(message));
+        error(peek(), message);
         return std::nullopt;
     }
 
-    void error(Index<Token> t, std::string message) noexcept;
+    void error(Index<Token> t, std::string_view message) noexcept;
 
     ASTContext context;
     unsigned current = 0;

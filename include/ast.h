@@ -197,7 +197,7 @@ public:
     }
 
     Index<Call> makeCall(ExpressionIndex callee, Index<Token> begin,
-                         std::vector<ExpressionIndex> args, Index<Token> end) noexcept
+                         std::vector<ExpressionIndex>&& args, Index<Token> end) noexcept
     {
         return insert_node(calls, callee, begin, std::move(args), end);
     }
@@ -218,7 +218,7 @@ public:
         return insert_node(varDecls, name, init);
     }
 
-    Index<FunDecl> makeFunDecl(Index<Token> name, std::vector<Index<Token>> params, std::vector<StatementIndex> body) noexcept
+    Index<FunDecl> makeFunDecl(Index<Token> name, std::vector<Index<Token>>&& params, std::vector<StatementIndex>&& body) noexcept
     {
         return insert_node(funDecls, name, std::move(params), std::move(body));
     }
@@ -228,7 +228,7 @@ public:
         return insert_node(returns, keyword, value);
     }
 
-    Index<Block> makeBlock(std::vector<StatementIndex> statements) noexcept
+    Index<Block> makeBlock(std::vector<StatementIndex>&& statements) noexcept
     {
         return insert_node(blocks, std::move(statements));
     }
@@ -243,7 +243,7 @@ public:
         return insert_node(whiles, condition, body);
     }
 
-    Index<Unit> makeUnit(std::vector<StatementIndex> statements) noexcept
+    Index<Unit> makeUnit(std::vector<StatementIndex>&& statements) noexcept
     {
         return insert_node(units, std::move(statements));
     }

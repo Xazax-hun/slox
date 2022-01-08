@@ -54,8 +54,8 @@ private:
         NameResolver& r;
         void operator()(const PrintStatement* s) const;
         void operator()(const ExprStatement* s) const;
-        void operator()(const VarDecl* s) const;
-        void operator()(const FunDecl* s) const;
+        void operator()(const VarDecl* v) const;
+        void operator()(const FunDecl* f) const;
         void operator()(const Return* s) const;
         void operator()(const Block* s) const;
         void operator()(const IfStatement* s) const;

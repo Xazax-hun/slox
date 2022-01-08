@@ -25,11 +25,12 @@ std::string print(const Token& t) noexcept
     }
 }
 
-TokenList::TokenList() noexcept : firstNonSynthetic(1)
+TokenList::TokenList() noexcept
 {
     // True token to support synthesizing while statements from
     // for expressions with empty condition.
     tokens.emplace_back(TRUE, -1);
+    firstNonSynthetic = tokens.size();
 }
 
 void TokenList::mergeTokensFrom(TokenList&& other) noexcept
@@ -181,17 +182,15 @@ std::optional<Token> Lexer::lexString() noexcept
             advance();
             continue;
         }
-        else
-        {
-            if (peek() == '"')
-                break;
 
-            if (peek() == '\\')
-            {
-                escaping = true;
-                advance();
-                continue;
-            }
+        if (peek() == '"')
+            break;
+
+        if (peek() == '\\')
+        {
+            escaping = true;
+            advance();
+            continue;
         }
         
         if (peek() == '\n')

@@ -50,7 +50,7 @@ struct Callable
 {
     unsigned arity;
     Environment* closure;
-    std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>)> impl;
+    std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>&&)> impl;
 
     RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args);
 };

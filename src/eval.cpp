@@ -17,7 +17,7 @@ std::string print(const RuntimeValue& val)
 
 RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue> args)
 {
-    return impl(interp, args);
+    return impl(interp, std::move(args));
 }
 
 Interpreter::Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, Environment env)
@@ -27,7 +27,7 @@ Interpreter::Interpreter(const ASTContext& ctxt, const DiagnosticEmitter& diag, 
     globalEnv.define("clock",
         Callable{
             0, &globalEnv,
-            [](Interpreter&, std::vector<RuntimeValue>) -> RuntimeValue
+            [](Interpreter&, std::vector<RuntimeValue>&&) -> RuntimeValue
             {
                 return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
             }
@@ -58,7 +58,7 @@ bool Interpreter::evaluate(StatementIndex stmt)
 
 bool Interpreter::isTruthy(const RuntimeValue& val)
 {
-    if (auto boolVal = std::get_if<bool>(&val))
+    if (const auto* boolVal = std::get_if<bool>(&val))
         return *boolVal;
 
     return !std::get_if<Nil>(&val);
@@ -166,7 +166,7 @@ RuntimeValue Interpreter::ExprEvalVisitor::operator()(const Binary* b) const
 
             if (std::get_if<double>(&left))
                 return std::get<double>(left) + std::get<double>(right);
-            else if (std::get_if<std::string>(&left))
+            if (std::get_if<std::string>(&left))
                 return std::get<std::string>(left) + std::get<std::string>(right);
 
             throw RuntimeError{b->op, "Operands with unsupported type."};
@@ -387,11 +387,11 @@ void Interpreter::collect()
         std::vector<Environment*> exploring{&getCurrentEnv()};
         while(!exploring.empty())
         {
-            auto env = exploring.back();
+            auto* env = exploring.back();
             exploring.pop_back();
             reached.insert(env);
 
-            auto p = env->enclosing;
+            auto* p = env->enclosing;
             while(p)
             {
                 if (reached.contains(p))
@@ -403,9 +403,9 @@ void Interpreter::collect()
 
             for(auto& [_, val] : env->values)
             {
-                if (auto callable = std::get_if<Callable>(&val))
+                if (auto* callable = std::get_if<Callable>(&val))
                 {
-                    auto env = callable->closure;
+                    auto* env = callable->closure;
                     if (reached.contains(env))
                         continue;
                     reached.insert(env);

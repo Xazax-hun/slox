@@ -126,7 +126,7 @@ public:
     std::span<Token> getSourceTokens() noexcept { return {tokens.begin() + firstNonSynthetic, tokens.end()}; }
 
     unsigned getFirstSourceTokenIdx() const noexcept { return firstNonSynthetic; }
-    unsigned getSyntheticTrueIdx() const noexcept { return 0; }
+    static unsigned getSyntheticTrueIdx() noexcept { return 0; }
 
     void mergeTokensFrom(TokenList&& other) noexcept;
 

@@ -22,10 +22,10 @@ using enum TokenType;
 
 void Parser::addTokens(TokenList tokens)
 {
-    context.addTokens(std::move(tokens));
-
     if (current == 0)
         current = tokens.getFirstSourceTokenIdx();
+
+    context.addTokens(std::move(tokens));
 }
 
 // Entry point to parsing.
@@ -94,7 +94,7 @@ std::optional<Index<FunDecl>> Parser::funDeclaration()
     MUST_SUCCEED(consume(LEFT_BRACE, "Expect '{' before function body."));
     BIND(body, statementList());
 
-    return context.makeFunDecl(name, params, body);
+    return context.makeFunDecl(name, std::move(params), std::move(body));
 }
 
 std::optional<Index<VarDecl>> Parser::varDeclaration()
@@ -171,7 +171,7 @@ std::optional<StatementIndex> Parser::forStatement()
     // Empty condition is desugared into a synthesized true literal.
     if (!cond)
     {
-        auto trueIdx = context.getTokenList().getSyntheticTrueIdx();
+        auto trueIdx = TokenList::getSyntheticTrueIdx();
         cond = context.makeLiteral(Index<Token>{trueIdx});
     }
     body = context.makeWhile(*cond, body);
@@ -278,7 +278,7 @@ std::optional<ExpressionIndex> Parser::assignment()
         if (const auto* dRefId = get_if<Index<DeclRef>>(&expr))
         {
             // TODO: simplify this pattern.
-            auto dRefNode = std::get<const DeclRef*>(context.getNode(*dRefId));
+            const auto* dRefNode = std::get<const DeclRef*>(context.getNode(*dRefId));
             return context.makeAssign(dRefNode->name, value);
         }
 
@@ -484,15 +484,15 @@ void Parser::synchronize()
     }
 }
 
-void Parser::error(Index<Token> tIdx, std::string message) noexcept
+void Parser::error(Index<Token> tIdx, std::string_view message) noexcept
 {
     const Token& t = context.getToken(tIdx);
     if (t.type == END_OF_FILE)
     {
-        diag.report(t.line, "at end of file", std::move(message));
+        diag.report(t.line, "at end of file", message);
     }
     else
     {
-        diag.report(t.line, fmt::format("at '{}'", print(t)), std::move(message));
+        diag.report(t.line, fmt::format("at '{}'", print(t)), message);
     }
 }

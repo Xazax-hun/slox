@@ -56,7 +56,7 @@ TEST(Lexer, TestAllTokens)
                                   OR, PRINT, RET, SUPER, THIS, TRUE, VAR, WHILE,
                                   END_OF_FILE};
         EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
-                    [](Token t, TokenType type) { return t.type == type; }));
+                    [](const Token& t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
 
@@ -70,7 +70,7 @@ TEST(Lexer, TestAllTokens)
             SLASH, STAR, BANG, BANG_EQUAL, EQUAL, EQUAL_EQUAL, GREATER, GREATER_EQUAL,
             LESS, LESS_EQUAL, END_OF_FILE};
         EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
-                    [](Token t, TokenType type) { return t.type == type; }));
+                    [](const Token& t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
 }
@@ -119,7 +119,7 @@ TEST(Lexer, Comments)
         auto sourceTokens = tokenList.getSourceTokens();
         TokenType tokenTypes[] = {AND, ELSE, END_OF_FILE};
         EXPECT_TRUE(std::equal(sourceTokens.begin(), sourceTokens.end(), std::begin(tokenTypes), std::end(tokenTypes),
-                    [](Token t, TokenType type) { return t.type == type; }));
+                    [](const Token& t, TokenType type) { return t.type == type; }));
         EXPECT_TRUE(output.str().empty());
     }
 }
@@ -179,7 +179,7 @@ TEST(Lexer, ErrorMessages)
 
     {
         std::stringstream output;
-        auto maybeTokens = lexString("\"\\|\"", output);
+        auto maybeTokens = lexString(R"("\|")", output);
         EXPECT_FALSE(maybeTokens.has_value());
         EXPECT_EQ("[line 1] Error : Unknown escape sequence '\\|'.\n", output.str());
     }
