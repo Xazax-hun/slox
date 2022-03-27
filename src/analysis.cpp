@@ -75,7 +75,6 @@ void NameResolver::declare(Index<Token> tok)
                                                      false));
     if (!result.second)
     {
-        const auto& token = ctxt.getToken(tok);
         const auto& name = std::get<std::string>(token.value);
         throw CompileTimeError{tok, fmt::format("Already a variable with name '{}' in this scope.", name)};
     }

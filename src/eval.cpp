@@ -15,7 +15,7 @@ std::string print(const RuntimeValue& val)
     }, val);
 }
 
-RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue> args)
+RuntimeValue Callable::operator()(Interpreter& interp, std::vector<RuntimeValue> args) const
 {
     return impl(interp, std::move(args));
 }
@@ -405,11 +405,11 @@ void Interpreter::collect()
             {
                 if (auto* callable = std::get_if<Callable>(&val))
                 {
-                    auto* env = callable->closure;
-                    if (reached.contains(env))
+                    auto* calledableEnv = callable->closure;
+                    if (reached.contains(calledableEnv))
                         continue;
-                    reached.insert(env);
-                    exploring.push_back(env);
+                    reached.insert(calledableEnv);
+                    exploring.push_back(calledableEnv);
                 }
             }
         }

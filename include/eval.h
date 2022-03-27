@@ -52,7 +52,7 @@ struct Callable
     Environment* closure;
     std::function<RuntimeValue(Interpreter&, std::vector<RuntimeValue>&&)> impl;
 
-    RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args);
+    RuntimeValue operator()(Interpreter& interp, std::vector<RuntimeValue> args) const;
 };
 
 struct ReturnValue

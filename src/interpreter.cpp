@@ -88,7 +88,6 @@ bool runPrompt(std::istream& in, std::ostream& out, std::ostream& err, bool dump
 {
     std::string line;
     int indent = 0;
-    std::string indentText;
 
     DiagnosticEmitter emitter(out, err);
     Parser parser(emitter);
@@ -96,7 +95,6 @@ bool runPrompt(std::istream& in, std::ostream& out, std::ostream& err, bool dump
 
     while (true)
     {
-        std::string line;
         {
             if (&in == &std::cin)
             {
