@@ -95,20 +95,18 @@ bool runPrompt(std::istream& in, std::ostream& out, std::ostream& err, bool dump
 
     while (true)
     {
+        if (&in == &std::cin)
         {
-            if (&in == &std::cin)
-            {
-                char *lineRaw = readline(::getPrompt(indent).data());
-                if (!lineRaw)
-                    break;
-                add_history(lineRaw);
-                line = lineRaw;
-            }
-            else
-            {
-                if (!std::getline(in, line))
-                    break;
-            }
+            char *lineRaw = readline(::getPrompt(indent).data());
+            if (!lineRaw)
+                break;
+            add_history(lineRaw);
+            line = lineRaw;
+        }
+        else
+        {
+            if (!std::getline(in, line))
+                break;
         }
 
         Lexer lexer(line, emitter);
