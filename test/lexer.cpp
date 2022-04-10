@@ -17,7 +17,6 @@ std::optional<TokenList> lexString(std::string s, std::ostream& output)
     if (!tokList)
         return std::nullopt;
 
-    // Skip synthetic tokens.
     return tokList;
 }
 
