@@ -309,7 +309,7 @@ private:
         auto operator()(Index<Call> index) const noexcept     -> Expression { return &ctx.calls[index.id]; }
     } exprNodeGetter{*this};
 
-    struct StatementExprNode
+    struct GetStatementNode
     {
         const ASTContext& ctx;
         auto operator()(Index<PrintStatement> index) const noexcept  -> Statement { return &ctx.prints[index.id]; }
